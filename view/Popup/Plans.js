@@ -48,7 +48,7 @@ class PlanCard {
 		info.id = Date.now().toString(32);
 		const prohibitedList = config.prohibitedList;
 		if (type === "charactersPool") {
-			const length = globalVars.model.getAllCharactersId().filter(id => !prohibitedList.includes(id)).length;
+			const length = globalVars.model.getAllCharactersId(config.showClosed).filter(id => !prohibitedList.includes(id)).length;
 			info.desc = `（仅启用武将: ${length} 个）`;
 			info.shortDesc = `启用: ${length}`;
 		} else {
@@ -408,7 +408,7 @@ export default class Plans extends Popup {
 		const info = await lib.init.promises.json(`${lib.assetURL}extension/AI禁将/plans/${fileName}`);
 		if (!parse) return info;
 		if (info.type === "charactersPool") {
-			info.prohibitedList = globalVars.model.getAllCharactersId().filter(id => !info.charactersPool.includes(id));
+			info.prohibitedList = globalVars.model.getAllCharactersId(config.showClosed).filter(id => !info.charactersPool.includes(id));
 			delete info.charactersPool;
 		}
 		return info;
@@ -457,7 +457,7 @@ export default class Plans extends Popup {
 		const info2 = Object.assign({}, info);
 		if (info2.type === "charactersPool") {
 			info2.prohibitedList = null;
-			info2.charactersPool = globalVars.model.getAllCharactersId().filter(id => !config.prohibitedList.includes(id));
+			info2.charactersPool = globalVars.model.getAllCharactersId(config.showClosed).filter(id => !config.prohibitedList.includes(id));
 		} else {
 			info2.charactersPool = null;
 			info2.prohibitedList = config.prohibitedList.slice();

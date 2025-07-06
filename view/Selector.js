@@ -309,13 +309,15 @@ class Selector extends HTMLDivElement {
 			if (frame > 5) num = 200;
 			else if (frame > 2) num = 100;
 
+			const fragment = document.createDocumentFragment();
 			for (let i = start; i < end; i++) {
 				const char = characters[i];
 				const btn = new CharacterBtn(char, frame !== 0);
-				container.appendChild(btn);
+				fragment.appendChild(btn);
 				this.observer.observe(btn);
 			}
 
+			container.appendChild(fragment);
 			this.node.loginfo2.textContent = end;
 			if (end < characters.length) {
 				frame++;
@@ -329,7 +331,7 @@ class Selector extends HTMLDivElement {
 
 		this.node.selectAll.setAttribute('disabled', 'true');
 		this.node.inverse.setAttribute('disabled', 'true');
-		requestAnimationFrame(renderFrame);
+		renderFrame();
 	}
 	#addListener() {
 		const {

@@ -199,7 +199,7 @@ export default class SelectorController {
 			return;
 		}
 		const reg = new RegExp(value);
-		const characters = globalVars.model.getCharactersId(c => reg.test(c) || reg.test(lib.translate[c]));
+		const characters = globalVars.model.getCharactersId(c => reg.test(c) || reg.test(lib.translate[c]), config.showClosed);
 		this.isSearching = true;
 		selector.renderCharacterList(characters);
 	}

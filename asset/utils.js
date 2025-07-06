@@ -108,6 +108,42 @@ class Utils {
 			this.executeChunkedTasks(tasks.slice(runSize), runFunc, runSize, finallyFunc);
 		});
 	}
+	/**
+	 * 打印单个武将包信息，测试用
+	 * @param { string } pack 武将包id
+	 */
+	getPackInfo(pack) {
+		console.group()
+		let keys = Object.keys(lib.characterPack[pack]);
+		let values = Object.values(lib.characterPack[pack]);
+		console.log('总数', '-------------------------');
+		console.log(lib.translate[pack + '_character_config'], '所有武将数:', keys.length);
+		const gender = [...new Set(values.map(value => value.sex))];
+		const group = [...new Set(values.map(value => value.group))];
+		console.log('性别信息', '-------------------------');
+		gender.forEach(g => console.log(lib.translate[g], keys.filter(key => lib.characterPack[pack][key].sex === g).length));
+		console.log('势力信息', '-------------------------');
+		group.forEach(g => console.log(lib.translate[g], keys.filter(key => lib.characterPack[pack][key].group === g).length));
+		console.log('评级信息', '-------------------------');
+		Object.keys(lib.rank.rarity).forEach(r => console.log(lib.translate[r], lib.rank.rarity[r].filter(k => keys.includes(k)).length))
+		const sorts = Object.keys(lib.characterSort[pack] || {});
+		console.log('分包信息', '-------------------------');
+		sorts.forEach(s => console.log(lib.translate[s], Object.keys(lib.characterSort[pack][s]).length))
+		console.groupEnd();
+	}
+	sortByOrder(uniqueArr, orderArr) {
+		if (!orderArr || !orderArr.length) return uniqueArr.slice();
+		const orderMap = new Map();
+		orderArr.forEach((item, index) => {
+			orderMap.set(item, index);
+		});
+
+		return [...uniqueArr].sort((a, b) => {
+			const indexA = orderMap.has(a) ? orderMap.get(a) : Infinity;
+			const indexB = orderMap.has(b) ? orderMap.get(b) : Infinity;
+			return indexA - indexB;
+		});
+	}
 }
 
 export default new Utils();

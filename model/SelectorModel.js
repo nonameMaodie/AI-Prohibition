@@ -1,6 +1,7 @@
 import { lib, game, ui, get, ai, _status } from "../../../noname.js";
 import globalVars from "../asset/globalVars.js";
 import config from "../asset/config.js";
+import utils from "../asset/utils.js";
 
 export default class SelectorModel {
 	/** * @type { string[] } */
@@ -8,6 +9,13 @@ export default class SelectorModel {
 	closedPackList = [];
 	openCharactersId = [];
 	closedCharactersId = [];
+	packCategories = {};
+	modeOrder = {
+		'默认': ['all'],
+		'评级': ['all', ...Object.keys(lib.rank.rarity)],
+		'势力': ['all', ...lib.group],
+		'性别': ['all', 'male', 'female', 'double', '']
+	}
 	constructor() {
 		globalVars.model = this;
 	}
@@ -40,18 +48,35 @@ export default class SelectorModel {
 	getPackCategoriesId(includesClosed) {
 		const mode = config.currentActiveMode;
 		const pack = config.currentActivePackId;
-		switch (mode) {
-			case '默认':
-				return ['all', ...Object.keys(lib.characterSort[pack] || {})];
-			case '评级':
-				return ['all', ...Object.keys(lib.rank.rarity)];
-			case '势力':
-				const allPacks = this.getPackListId(includesClosed);
-				allPacks.shift();
-				return ['all', ...new Set(allPacks.flatMap(pack => Object.values(lib.characterPack[pack])).map(obj => obj.group || obj[1]))];
-			case '性别':
-				return ['all', 'male', 'female', 'double', ''];
+		if (!this.packCategories[pack]) this.packCategories[pack] = {}
+		if (!this.packCategories[pack][mode]) {
+			const result = (() => {
+				switch (mode) {
+					case '默认':
+						return ['all', ...Object.keys(lib.characterSort[pack] || {})];
+					case '评级':
+						if (pack === 'all') return ['all', ...Object.keys(lib.rank.rarity)];
+						const keys = Object.keys(lib.characterPack[pack]);
+						return ['all', ...Object.keys(lib.rank.rarity).filter(r => lib.rank.rarity[r].some(k => keys.includes(k)))];
+					case '势力': {
+						if (pack === 'all') {
+							const allPacks = this.getPackListId(true);
+							allPacks.shift();
+							return ['all', ...new Set(allPacks.flatMap(pack => Object.values(lib.characterPack[pack])).map(obj => obj.group || obj[1]))];
+						}
+						const values = Object.values(lib.characterPack[pack]);
+						return ['all', ...new Set(values.map(value => value.group || value[1]))];
+					}
+					case '性别': {
+						if (pack === 'all') return ['all', 'male', 'female', 'double', ''];
+						const values = Object.values(lib.characterPack[pack]);
+						return ['all', ...new Set(values.map(value => value.sex || value[0]))];
+					}
+				}
+			})();
+			this.packCategories[pack][mode] = utils.sortByOrder(result, this.modeOrder[mode]);
 		}
+		return this.packCategories[pack][mode];
 	}
 	/**
 	 * 获取所有的武将id数组，并将返回结果缓存在 this.#allCharactersId 中
@@ -97,7 +122,7 @@ export default class SelectorModel {
 				return Object.keys(lib.characterPack[pack]);
 			}
 
-			const packCharactersId = this.getPackCharactersId(pack);
+			const packCharactersId = this.getPackCharactersId(pack, includesClosed);
 			switch (mode) {
 				case '默认':
 					return lib.characterSort[pack][packCategories];

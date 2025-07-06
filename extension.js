@@ -28,7 +28,7 @@ game.import("extension", function () {
 				lib.filter.characterDisabled = function (i, libCharacter) {
 					if (stockDisabled) return savedFilter(i, libCharacter);
 					let prohibitedList = config.prohibited.default;
-					if (lib.character[i] && prohibitedList.includes(i)) {
+					if (prohibitedList.includes(i)) {
 						return true;
 					}
 					return savedFilter(i, libCharacter);
