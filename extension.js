@@ -85,7 +85,7 @@ game.import("extension", function () {
 				 * @returns { { case: string, '1'?: string, '2'?: string } }
 				 */
 				hasWjCharacter(target, mode, subMode) {
-					const fakeProhibited = game.getExtensionConfig('AI禁将', 'forbidai').fakeProhibited;
+					const fakeProhibited = config.fakeProhibited;
 					const resFunc = function (target, configName) {
 						let res = {};
 						if (!fakeProhibited[configName] || !fakeProhibited.default) {
@@ -151,7 +151,7 @@ game.import("extension", function () {
 						}
 
 						// 初始化默认候选池
-						const fakeProhibited = game.getExtensionConfig('AI禁将', 'forbidai').fakeProhibited;
+						const fakeProhibited = config.fakeProhibited;
 						const defaultProhibited = fakeProhibited.default || [];
 						let list = _status.characterlist.slice(0);
 
@@ -168,7 +168,7 @@ game.import("extension", function () {
 						return _status.AI禁将_fpMap[caseName];
 					}
 
-					const fakeProhibited = game.getExtensionConfig('AI禁将', 'forbidai').fakeProhibited;
+					const fakeProhibited = config.fakeProhibited;
 
 					// 只初始化当前需要的候选列表
 					const prohibitedList = fakeProhibited[caseName] || [];
@@ -437,7 +437,7 @@ game.import("extension", function () {
 						}
 					}
 					if (acc[0] && confirm('是否加载《AI优化》的伪禁数据到《AI禁将》？')) {
-						const fakeProhibited = game.getExtensionConfig('AI禁将', 'forbidai').fakeProhibited;
+						const fakeProhibited = config.fakeProhibited;
 						for (let i in originalConfig) {
 							if (originalConfig[i].length) {
 								fakeProhibited[i].addArray(originalConfig[i]);
@@ -495,7 +495,7 @@ game.import("extension", function () {
 				name: "AI禁将界面背景图片",
 				init: "huanhua",
 				unfrequent: true,
-				intro: "更改启动页背景图（实时生效）",
+				intro: "更改背景图（实时生效）",
 				"item": {
 					"xitong": "跟随系统",
 					"huanhua": "幻化之战",

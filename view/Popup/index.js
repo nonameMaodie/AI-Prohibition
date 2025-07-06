@@ -13,21 +13,23 @@ export default class Popup extends HTMLElement {
 		}
 		.container {
 			position: absolute;
-			width: 50%;
-			height: 80%;
+			width: 700px;
+   			height: 700px;
+   			max-height: 85%;
+			max-width: 95%;
 			background: rgba(0, 0, 0, .75);
 			box-sizing: border-box;
 			border: 2px solid #ccc;
-			border-radius: 9px;
+			border-radius: 10px;
 			top: 50%;
 			left: 50%;
 			transform: translate(-50%, -50%);
-			padding: 5px;
+			zoom: ${(1 / globalVars.uiZoom) || 1};
 		}
 		.container>.header{
 			display: flex;
-			width: 100%;
 			height: 30px;
+			padding: 8px 8px 0 8px;
 		}
 		/* 弹窗标题样式 */
 		.container>.header>h2 {
@@ -44,9 +46,10 @@ export default class Popup extends HTMLElement {
 			cursor: pointer;
 		}
 		.container>.content {
+		    position: absolute;
 			width: 100%;
-			height:  calc(100% - 30px);
-			padding: 5px;
+			height:  calc(100% - 38px);
+			padding: 8px 8px 0 8px;
 			box-sizing: border-box;
 			font-size: 15px;
 			text-align: start;

@@ -601,6 +601,8 @@
   position: relative;
   top: 0;
   left: 0;
+  background: none;
+	box-shadow: none;
   box-sizing: border-box;
   overflow-y: auto;
 }
@@ -639,6 +641,10 @@
 .Selector>.selector-content>.characterList>.dialog>.content-container>.content::-webkit-scrollbar-track {
   border-radius: calc(var(--sl-layout-size) * 1);
   background-color: rgba(0, 0, 0, 0.6);
+}
+
+.Selector>.selector-content>.characterList>.dialog .buttons.smallzoom{
+  zoom: 0.75;
 }
 
 .Selector>.selector-content>.characterList>.dialog .item {

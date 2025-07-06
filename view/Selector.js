@@ -133,7 +133,6 @@ class Selector extends HTMLDivElement {
 		this.renderPackList();
 		const cvs = new CanvasBoard(this.node.characterList, this);
 		this.canvas = cvs;
-		document.documentElement.style.setProperty('--sl-layout-zoom', config.computedZoom / game.documentZoom);
 		if (config.remember) {
 			this.node.selectChoose.querySelector('.method>span').textContent = config.currentActiveMode;
 			if (config.isCharSelectedActive) this.node.charSelectedBtn.classList.add('active');
@@ -180,8 +179,13 @@ class Selector extends HTMLDivElement {
 	 * @param { function } onClose 
 	 */
 	open() {
+		document.documentElement.style.setProperty('--sl-layout-zoom', config.zoom / globalVars.uiZoom);
 		ui.window.appendChild(this);
 		this.init();
+		if (this.node.dialog) {
+			this.node.dialog.classList.remove('hidden');
+			this.node.characterList.appendChild(this.node.dialog);
+		}
 		this.setAttribute("data-visible", "true");
 		if (config.remember) this.node.charPackList.scrollLeft = config.scrollLeft;
 	}
@@ -192,8 +196,8 @@ class Selector extends HTMLDivElement {
 	 * 渲染武将包列表/渲染武将包分类列表
 	 * @param { 'packList' | 'packCategories' } name 
 	 */
-	renderList(name) {
-		const list = globalVars.model.getList(name);
+	renderList(name, showClosed) {
+		const list = globalVars.model.getList(name, showClosed);
 		let parentNode;
 		let getActiveId;
 		let setActiveId;
@@ -205,7 +209,7 @@ class Selector extends HTMLDivElement {
 			getActiveId = () => config.currentActivePackId;
 			setActiveId = (id) => config.currentActivePackId = id;
 			getInnerHTML = (id) => {
-				return id === 'all' ? '全扩' : lib.translate[id + '_character_config']
+				return id === 'all' ? '全扩' : (lib.translate[id + '_character_config'] || '')
 			}
 			next = this.renderPackCategories.bind(this);
 		} else if (name === 'packCategories') {
@@ -213,7 +217,7 @@ class Selector extends HTMLDivElement {
 			getActiveId = () => config.currentActivePackCategoryId;
 			setActiveId = (id) => config.currentActivePackCategoryId = id;
 			getInnerHTML = (id) => {
-				return id === 'all' ? '所有武将' : lib.translate[id];
+				return id === 'all' ? '所有武将' : (lib.translate[id] || '');
 			}
 			next = this.renderCharacterList.bind(this);
 		} else {
@@ -249,18 +253,18 @@ class Selector extends HTMLDivElement {
 	}
 	// 渲染武将包列表
 	renderPackList() {
-		this.renderList('packList');
+		this.renderList('packList', config.showClosed);
 	}
 	//渲染武将包分类列表
 	renderPackCategories() {
-		this.renderList('packCategories');
+		this.renderList('packCategories', config.showClosed);
 	}
 	/**
 	 * 渲染每一个武将
 	 * @param { string[]? } charactersArr 
 	 */
 	renderCharacterList(charactersArr) {
-		const characters = charactersArr || globalVars.model.getList('characters');
+		const characters = charactersArr || globalVars.model.getList('characters', config.showClosed);
 		//逐帧渲染和懒加载武将按钮
 		const characterList = this.node.characterList;
 		if (this.node.dialog) this.node.dialog.remove();
@@ -270,6 +274,7 @@ class Selector extends HTMLDivElement {
 		this.node.dialog = dialog; */
 		dialog.content.innerHTML = '';
 		const buttonsElement = ui.create.div('.buttons', dialog.content);
+		if (config.small) buttonsElement.classList.add('smallzoom');
 		this.renderElements(characters, buttonsElement);
 		globalVars.controller.autoToggleSelectAllBtn();
 	}
@@ -289,7 +294,7 @@ class Selector extends HTMLDivElement {
 
 		let num = 8; // 每帧渲染的元素数量
 		let count_num = 0; //当前渲染的元素起始索引
-		let step = 2; //步长
+		// let step = 2; //步长
 		let frame = 0; // 当前帧数
 		if (this.animationFrameTimer) {
 			cancelAnimationFrame(this.animationFrameTimer);
@@ -301,7 +306,8 @@ class Selector extends HTMLDivElement {
 			const end = Math.min(count_num + num, characters.length);
 			count_num = end;
 
-			if (num < 150) num += step;
+			if (frame > 5) num = 200;
+			else if (frame > 2) num = 100;
 
 			for (let i = start; i < end; i++) {
 				const char = characters[i];

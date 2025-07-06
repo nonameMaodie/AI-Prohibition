@@ -7,7 +7,9 @@ class Config {
 			record: ['默认', 'all', 'all', 0, false, false],
 			addMenu: true, // 是否添加到菜单栏
 			remember: true, // 记住界面状态
-			computedZoom: 1, // 当前缩放比例
+			zoom: 1.3, // 当前缩放比例
+			small: false, // 是否使用小图
+			showClosed: false, // 是否显示已关闭的武将包和武将
 			volume_audio: 30, // 音效音量
 			prohibited: {
 				default: [], // 仅点将禁用列表

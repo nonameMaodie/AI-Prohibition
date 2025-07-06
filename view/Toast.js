@@ -18,16 +18,16 @@ class Toast extends HTMLDivElement {
 		this.classList.add(validType);
 
 		this.animate([
-			{ opacity: 0, transform: 'translateX(-50%) translateY(200%)' },
-			{ opacity: 1, transform: 'translateX(-50%) translateY(300%)' },
+			{ opacity: 0, transform: 'translateX(-50%) translateY(50%)' },
+			{ opacity: 1, transform: 'translateX(-50%) translateY(100%)' },
 		], {
 			duration: 300,
 			fill: 'forwards'
 		});
 		setTimeout(() => {
 			this.animate([
-				{ opacity: 1, transform: 'translateX(-50%) translateY(300%)' },
-				{ opacity: 0, transform: 'translateX(-50%) translateY(150%)' }
+				{ opacity: 1, transform: 'translateX(-50%) translateY(100%)' },
+				{ opacity: 0, transform: 'translateX(-50%) translateY(0)' }
 			], {
 				duration: 1000,
 				easing: 'ease-out',
@@ -53,5 +53,5 @@ class Toast extends HTMLDivElement {
 	}
 }
 
-customElements.define('cus-toast', Toast, { extends: 'div' });
+customElements.define('liansheng-toast', Toast, { extends: 'div' });
 export default Toast; 

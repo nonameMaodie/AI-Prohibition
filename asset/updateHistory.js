@@ -1,8 +1,16 @@
 const history = [
 	{
-		"version": "2.2",
-		"date": "2025-06-27",
+		"version": "v2.3",
+		"date": "2025-07-04",
 		"compatibility": "本体 v1.10.6 及以上版本",
+		"changes": [
+			"修复了保留的bug。"
+		]
+	},
+	{
+		"version": "v2.2",
+		"date": "2025-06-27",
+		"compatibility": "本体 v1.v10.6 及以上版本",
 		"changes": [
 			"进一步优化界面性能，提升操作流畅度",
 			"新增“伪禁”以及更多高级“伪禁”的禁将方式",
@@ -13,7 +21,7 @@ const history = [
 		]
 	},
 	{
-		"version": "2.1",
+		"version": "v2.1",
 		"date": "2024-10-10",
 		"compatibility": "本体1.10.6及以上版本",
 		"changes": [
@@ -23,7 +31,7 @@ const history = [
 		]
 	},
 	{
-		"version": "2.0",
+		"version": "v2.0",
 		"date": "2024-09-09",
 		"compatibility": "本体1.10.6及以上版本",
 		"changes": [

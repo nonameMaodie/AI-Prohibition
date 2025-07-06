@@ -6,6 +6,7 @@ class Utils {
 
 	/** @type { boolean } */
 	alerting = false;
+	path = this.getDeviceType() === "electron" ? require('path') : void 0;
 	/**
 	 * @param { string } name 音频名
 	 */

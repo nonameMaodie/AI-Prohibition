@@ -3,6 +3,7 @@ import { lib, game, ui, get, ai, _status } from "../../../../noname.js";
 import config from "../../asset/config.js";
 import utils from "../../asset/utils.js";
 import globalVars from "../../asset/globalVars.js";
+import Toast from "../Toast.js";
 
 /** @extends HTMLLIElement */
 class PlanCard {
@@ -18,7 +19,7 @@ class PlanCard {
 		const show = document.createElement('div');
 		show.classList.add('show');
 		const img = `<img src="${lib.assetURL}extension/AI禁将/image/${info.type === "charactersPool" ? "icon-character" : "icon-locked"}.svg" style="width:20px; height:20px"></img>`;
-		show.innerHTML = `<div data-id="title">${img} <label for="planName">${info.name}</label><input id="planName" type="text" maxlength="7"></div><div data-id="desc">${info.desc}</div>`;
+		show.innerHTML = `<div data-id="title">${img} <label for="planName">${info.name}</label><input id="planName" type="text" maxlength="9"></div><div data-id="shortDesc">${info.shortDesc}</div><div data-id="desc">${info.desc}</div>`;
 		const action = document.createElement('div');
 		action.classList.add('action');
 		action.innerHTML = `
@@ -49,15 +50,17 @@ class PlanCard {
 		if (type === "charactersPool") {
 			const length = globalVars.model.getAllCharactersId().filter(id => !prohibitedList.includes(id)).length;
 			info.desc = `（仅启用武将: ${length} 个）`;
+			info.shortDesc = `启用: ${length}`;
 		} else {
 			info.desc = `（禁将数量: ${prohibitedList.length}个）`;
+			info.shortDesc = `禁用: ${prohibitedList.length}`;
 		}
 		info.fileName = this.getFileName(info);
 		return info;
 	}
 }
 
-export default class Plan extends Popup {
+export default class Plans extends Popup {
 	/** @type { number } 最大将池/方案数 */
 	static maxCardNum = 30;
 
@@ -76,8 +79,11 @@ export default class Plan extends Popup {
    				padding: 0 5px;
 			}
 			.content .add img{
-				width: 18px;
-				vertical-align: bottom;
+				width: 20px;
+				vertical-align: text-bottom;
+			}
+			.content .add span[data-id="text"]{
+				font-size: 18px;
 			}
 			.content ul{
 				display: grid;
@@ -91,12 +97,12 @@ export default class Plan extends Popup {
 				background: rgba(200,200,200,.3);
 				border-radius: 10px;
 				height: 40px;
-				padding: 11px;
+				padding: 10px;
 	            transition: 0.5s;
 				box-sizing: border-box;
 			}
 			.content ul>li:hover {
-				height: 80px;
+				height: 62px;
 			}		
 			.content ul>li:hover .action{
 				opacity: 1;
@@ -108,9 +114,12 @@ export default class Plan extends Popup {
 				transform: translateY(26px);
 				pointer-events: auto;
 			}
+			.content ul>li:hover .show>[data-id="shortDesc"] {
+				opacity: 0;
+			}
 			.content .show{
 				position: relative;
-				width: 70%;
+				width: 75%;
 			}
 			.content .action{
 				position: absolute;
@@ -120,10 +129,9 @@ export default class Plan extends Popup {
 				grid-template-rows: repeat(2, 1fr);
 				text-align: center;
 				align-items: center;
-				width: 28%;
 				color: #ebebeb;
 				right: 10px;
-				top: 40px;
+				top: 31px;
 				opacity: 0;
 				pointer-events: none;
            		transform: translate(100%, -50%);
@@ -137,6 +145,15 @@ export default class Plan extends Popup {
 				opacity: 0;
 				pointer-events: none;
            		transform: translateY(50px);
+            	transition: all 500ms cubic-bezier(0.4, 0, 0.2, 1);
+			}
+			.content .show>[data-id="shortDesc"]{
+				position: absolute;
+				top: 10px;
+				opacity: 1;
+				pointer-events: none;
+				color: #dbdbdb;
+           		transform: translate(249px, -50%);
             	transition: all 500ms cubic-bezier(0.4, 0, 0.2, 1);
 			}
 			.content .show label[for="planName"] {
@@ -161,7 +178,7 @@ export default class Plan extends Popup {
 				color: #dbdbdb;
 			}
 			.content .action>span {
-				font-size: 17px;
+				font-size: 16px;
 				cursor: pointer;
 			}
 			.content .action>span:hover {
@@ -169,36 +186,32 @@ export default class Plan extends Popup {
 			}
 		`);
 		this.setCaption('将池与方案');
-		if (!['electron', 'cordova'].includes(utils.getDeviceType())) {
-			this.setContent('<center style="line-height: 50vh; font-size: 30px;">当前环境不可用</center>');
-		} else {
-			this.readAllJSON()
-				.then(plans => {
-					const charactersPool = ui.create.div('.charactersPool', `
+		this.readAllJSON()
+			.then(plans => {
+				const charactersPool = ui.create.div('.charactersPool', `
 							<div class="add"><img src="${lib.assetURL}extension/AI禁将/image/add.png" style="cursor: pointer;"><span data-id="text"> 添加新的将池</span></div>
 							<ul></ul>
 						`);
-					const prohibitedPlan = ui.create.div('.prohibitedPlan', `
+				const prohibitedPlan = ui.create.div('.prohibitedPlan', `
 							<div class="add"><img src="${lib.assetURL}extension/AI禁将/image/add.png" style="cursor: pointer;"><span data-id="text"> 添加新的方案</span></div>
 							<ul></ul>
 						`);
-					const charactersPoolUl = charactersPool.querySelector('ul');
-					const prohibitedPlanUl = prohibitedPlan.querySelector('ul');
-					const addPlan = info => (info.type === "charactersPool" ? charactersPoolUl : prohibitedPlanUl).appendChild(new PlanCard(info));
-					utils.executeChunkedTasks(plans, addPlan, 30, () => {
-						[charactersPool, prohibitedPlan].forEach(ele => {
-							const textnode = ele.querySelector('span[data-id="text"]');
-							if (ele.querySelectorAll('ul>li').length >= Plan.maxCardNum) {
-								textnode.innerHTML += '（已达上限）';
-							}
-						})
-					});
-					this.node.content.node = { charactersPool, prohibitedPlan };
-					this.setContent(charactersPool);
-					this.setContent(prohibitedPlan);
-					this.#addListener();
+				const charactersPoolUl = charactersPool.querySelector('ul');
+				const prohibitedPlanUl = prohibitedPlan.querySelector('ul');
+				const addPlan = info => (info.type === "charactersPool" ? charactersPoolUl : prohibitedPlanUl).appendChild(new PlanCard(info));
+				utils.executeChunkedTasks(plans, addPlan, 30, () => {
+					[charactersPool, prohibitedPlan].forEach(ele => {
+						const textnode = ele.querySelector('span[data-id="text"]');
+						if (ele.querySelectorAll('ul>li').length >= Plans.maxCardNum) {
+							textnode.innerHTML += '（已达上限）';
+						}
+					})
 				});
-		}
+				this.node.content.node = { charactersPool, prohibitedPlan };
+				this.setContent(charactersPool);
+				this.setContent(prohibitedPlan);
+				this.#addListener();
+			});
 	}
 	/** 
 	 * @param { 'charactersPool' | 'prohibitedPlan' } type
@@ -230,21 +243,32 @@ export default class Plan extends Popup {
 				//添加按钮
 				utils.playAudio('click1');
 				const type = e.target.closest('.charactersPool') ? 'charactersPool' : 'prohibitedPlan';
-				game.prompt(`请输入新的${type === 'charactersPool' ? '将池名' : '方案名'}`, null, result => {
+				const cards = Array.from(e.target.closest('.content .add').nextElementSibling.childNodes);
+				game.prompt(`请输入新的${type === 'charactersPool' ? '将池名' : '方案名'}` + '<br><font size="1px">（直接点击“确定”使用默认名称）</font>', null, result => {
 					if (typeof result !== 'string') return;
 					const cardName = result.trim();
+					if (cards.some(card => card.info.name === cardName)) {
+						alert("命名有重复！");
+						return;
+					}
 					const card = this.createNewPlanCard(type, cardName);
 					const ul = this.node.content.querySelector(type === 'charactersPool' ? '.charactersPool ul' : '.prohibitedPlan ul');
 					let count = ul.childElementCount;
-					if (count >= Plan.maxCardNum) return;
-					this.writeJSON(card.info).then(() => {
-						ul.appendChild(card);
-						count++;
-						const textnode = this.node.content.querySelector(('.' + type + ' .add span[data-id="text"]'))
-						if (count >= Plan.maxCardNum && !textnode.innerHTML.includes('（已达上限）')) {
-							textnode.innerHTML += '（已达上限）';
-						}
-					});
+					if (count >= Plans.maxCardNum) return;
+					this.writeJSON(card.info)
+						.then(() => {
+							ul.appendChild(card);
+							count++;
+							const textnode = this.node.content.querySelector(('.' + type + ' .add span[data-id="text"]'))
+							if (count >= Plans.maxCardNum && !textnode.innerHTML.includes('（已达上限）')) {
+								textnode.innerHTML += '（已达上限）';
+							}
+							new Toast().info(`“${card.info.name}”已添加至extension/AI禁将/plans`);
+						})
+						.catch(e => {
+							new Toast().error("添加失败");
+							console.error("添加失败，错误信息：" + e);
+						});
 
 				})
 			} else if (e.target.closest('.content ul>li>.action')) {
@@ -257,10 +281,13 @@ export default class Plan extends Popup {
 								globalVars.prohibitedList = data.prohibitedList;
 								config.prohibitedList = globalVars.prohibitedList.slice();
 								config.save();
-								alert(`读取“${card.info.name}”成功！`);
+								new Toast().success(`读取“${card.info.name}”成功！`);
 								globalVars.selector.renderCharacterList();
 							})
-							.catch((e) => { alert(`读取失败！错误信息：${e}`) });
+							.catch((e) => {
+								new Toast().error(`读取失败`);
+								console.error(`读取失败！错误信息：${e}`);
+							});
 						break;
 					}
 					case 'cover': {
@@ -268,9 +295,9 @@ export default class Plan extends Popup {
 						const ul = e.target.closest('.content ul');
 						const type = e.target.closest('.charactersPool') ? 'charactersPool' : 'prohibitedPlan';
 						const oldCard = e.target.closest('.content ul>li');
-						game.prompt(`请输入新的${type === 'charactersPool' ? '将池名' : '方案名'}`, null, result => {
+						game.prompt(`请输入新的${type === 'charactersPool' ? '将池名' : '方案名'}` + '<br><font size="1px">（直接点击“确定”使用原名覆盖）</font>', null, result => {
 							if (typeof result !== 'string') return;
-							const cardName = result.trim();
+							const cardName = result.trim() || oldCard.info.name;
 							const newCard = this.createNewPlanCard(type, cardName);
 							this.deleteJSON(oldCard.info.fileName)
 								.then(() => {
@@ -278,7 +305,12 @@ export default class Plan extends Popup {
 								})
 								.then(() => {
 									ul.replaceChild(newCard, oldCard);
-									alert(`新方案“${newCard.info.name}”已覆盖原方案！`);
+									const typeName = type === 'charactersPool' ? '将池' : '方案';
+									new Toast().info(`“${newCard.info.name}”已覆盖原${typeName}！`);
+								})
+								.catch(e => {
+									new Toast().error("覆盖失败");
+									console.error("覆盖失败，错误信息：" + e);
 								});
 						})
 						break;
@@ -292,16 +324,21 @@ export default class Plan extends Popup {
 					}
 					case 'delete': {
 						utils.playAudio('click1');
-						if (!confirm('确定删除此方案吗？')) return;
 						const oldCard = e.target.closest('.content ul>li');
+						const typeName = oldCard.info.type === 'charactersPool' ? '将池' : '方案';
+						if (!confirm(`确定删除此${typeName}吗？`)) return;
 						const ul = e.target.closest('.content ul');
 						this.deleteJSON(oldCard.info.fileName)
 							.then(() => {
 								oldCard.remove();
-								if (ul.childElementCount < Plan.maxCardNum) {
+								if (ul.childElementCount < Plans.maxCardNum) {
 									const text = ul.previousElementSibling.querySelector('span[data-id="text"]');
 									text.innerHTML = text.innerHTML.replace('（已达上限）', '');
 								}
+							})
+							.catch(e => {
+								new Toast().error("删除失败");
+								console.error("删除失败，错误信息：" + e);
 							});
 						break;
 					}
@@ -340,22 +377,31 @@ export default class Plan extends Popup {
 				alert("命名有重复！");
 				return;
 			}
+			if (value.match(/[\\|\/|:|\?|"|\*|<|>|\|]/g)) {
+				alert("请勿使用特殊字符！");
+				return;
+			}
 			const oldFileName = card.info.fileName;
 			const info = Object.assign({}, card.info);
 			info.name = value;
 			const newFileName = card.getFileName(info);
+			info.fileName = newFileName;
 			this.renameJSON(oldFileName, newFileName)
 				.then(() => {
 					return this.readJSON(newFileName)
 				})
-				.then(info => {
-					info.name = value;
-					return new Promise(resolve => game.writeFile(JSON.stringify(info, Object.keys(info).remove("fileName"), 2), `extension/AI禁将/plans`, newFileName, data => resolve(data)));
+				.then(readInfo => {
+					Object.assign(readInfo, info);
+					return new Promise(resolve => game.writeFile(JSON.stringify(readInfo, Object.keys(readInfo).remove("fileName"), 2), `extension/AI禁将/plans`, newFileName, data => resolve(data)));
 				}, e => console.error(e))
 				.then(() => {
 					card.querySelector('label[for="planName"]').innerHTML = value;
-					card.info.fileName = newFileName;
-				}, e => console.error(e))
+					Object.assign(card.info, info);
+				})
+				.catch(e => {
+					new Toast().error('重命名失败');
+					console.error(e);
+				})
 		}
 	}
 	async readJSON(fileName, parse = false) {
@@ -391,6 +437,7 @@ export default class Plan extends Popup {
 		for (const file of files) {
 			if (file.endsWith('.json')) {
 				const info = await this.readJSON(file);
+				info.shortDesc = info.charactersPool ? `启用: ${info.charactersPool.length}` : `禁用: ${info.prohibitedList.length}`;
 				for (const key in info) {
 					if (['charactersPool', 'prohibitedList'].includes(key)) delete info[key];
 				}
@@ -416,7 +463,7 @@ export default class Plan extends Popup {
 			info2.prohibitedList = config.prohibitedList.slice();
 		}
 		const fileName = info2.fileName;
-		await game.promises.writeFile(JSON.stringify(info2, Object.keys(info2).remove("fileName"), 2), `extension/AI禁将/plans`, fileName);
+		await game.promises.writeFile(JSON.stringify(info2, Object.keys(info2).remove("fileName", "shortDesc"), 2), `extension/AI禁将/plans`, fileName);
 	}
 	/**
 	 * 删除JSON文件
@@ -437,4 +484,4 @@ export default class Plan extends Popup {
 	}
 }
 
-customElements.define('selector-popup-plan', Plan);
+customElements.define('selector-popup-plan', Plans);

@@ -4,7 +4,7 @@ import utils from "../asset/utils.js";
 import config from "../asset/config.js";
 import Popup from "../view/Popup/index.js";
 import Help from "../view/Popup/Help.js";
-import Plan from "../view/Popup/Plan.js";
+import Plans from "../view/Popup/Plans.js";
 import Setup from "../view/Popup/Setup.js";
 import Constant from "../asset/Constant.js";
 
@@ -89,10 +89,10 @@ export default class SelectorController {
 						if (!e.ctrlKey) return;
 						const delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
 						let zoom = +getComputedStyle(document.documentElement).getPropertyValue('--sl-layout-zoom');
-						const max = Constant.maxZoom / game.documentZoom, min = Constant.minZoom / game.documentZoom;
+						const max = Constant.maxZoom / globalVars.uiZoom, min = Constant.minZoom / globalVars.uiZoom;
 						zoom = delta > 0 ? Math.min(max, zoom + 0.08) : Math.max(min, zoom - 0.08);
 						document.documentElement.style.setProperty('--sl-layout-zoom', zoom);
-						config.computedZoom = zoom * game.documentZoom;
+						config.zoom = zoom * globalVars.uiZoom;
 						config.save();
 					};
 					const handleKeyup = (e) => {
@@ -158,7 +158,7 @@ export default class SelectorController {
 	}
 	onClickPlanBtn(target, event) {
 		if (event) utils.playAudio('click2');
-		new Plan(globalVars.selector);
+		new Plans(globalVars.selector);
 	}
 	onClickSetUpBtn(target, event) {
 		if (event) utils.playAudio('click2');

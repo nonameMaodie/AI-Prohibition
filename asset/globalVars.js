@@ -1,5 +1,4 @@
-// import SelectorController from "../controller/SelectorController";
-// import SelectorModel from "../model/SelectorModel";
+import { lib, game, ui, get, ai, _status } from "../../../noname.js";
 
 class GlobalVars {
 	/** @type {Selector} */
@@ -29,6 +28,10 @@ class GlobalVars {
 	 * 是否收起了高级违禁列表
 	 *  @type {boolean} */
 	isAFPHidden = true;
+
+	get uiZoom() {
+		return (+game.documentZoom || 1) / (+game.deviceZoom || 1);
+	}
 
 	/**
 	 * 防抖函数，返回一个 Promise，在 func 执行完成后 resolve
@@ -65,7 +68,7 @@ class GlobalVars {
 	}
 }
 
-// window.gl = new GlobalVars();
-// export default window.gl;
+window.gl = new GlobalVars();
+export default window.gl;
 
-export default new GlobalVars();
+// export default new GlobalVars();

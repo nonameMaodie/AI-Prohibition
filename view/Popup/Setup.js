@@ -8,20 +8,34 @@ import Constant from "../../asset/Constant.js";
 export default class Setup extends Popup {
 	constructor() {
 		const minValue = 50, maxValue = 150;
-		const zoom = +getComputedStyle(document.documentElement).getPropertyValue('--sl-layout-zoom');
+		const zoom = +getComputedStyle(document.documentElement).getPropertyValue('--sl-layout-zoom') * globalVars.uiZoom;
 		const relativeValue = (zoom - Constant.minZoom) / Constant.zoomRange;
 		const value = Math.round(relativeValue * (maxValue - minValue) + minValue);
 		const thumbWidth = 18;
 		const inputWidth = 150;
 
 		super(`
-			/* 设置弹窗的文本区域设置布局 */
-			.content{
-				display: grid;
-			    align-content: flex-start;
-				font-size: 18px;
+			.container>.content{
+				padding: 0;
+				overflow-x: auto;
 			}
-			.content>div {
+			.page-list {
+				position: absolute;
+				display: flex;
+				transition: transform 0.6s ease-in-out;
+			}
+			.main-page {
+				position: relative;
+				display: flex;
+				flex-wrap: wrap;
+				align-content: flex-start;
+				box-sizing: border-box;
+				min-width: 100%;
+         	    height: 100%;
+				font-size: 18px;
+				padding: 8px 8px 0 8px; 
+			}
+			.main-page>div {
 				width: 100%;
 				display: flex;
 				height: 38px;
@@ -29,9 +43,8 @@ export default class Setup extends Popup {
 				align-items: center;
 				transition: all.1s linear;
 			}
-
 			/*设置弹窗的按钮开启样式*/
-			.content>div>h3 +span {
+			.main-page>div>h3 +span {
 				display: block;
 				background: url(${lib.assetURL}extension/AI禁将/image/button-off.png) no-repeat center center/contain;
 				width: 60px;
@@ -40,18 +53,19 @@ export default class Setup extends Popup {
 				transform-origin: right center;
 				cursor: pointer;
 			}
-			.content>div.hidden {
+			.main-page>div.hidden {
 				opacity: 0;
 				pointer-events: none;
 				margin-top: -50px;
 			}
-			.content>[data-id="advancedFPContent"] {
+			.main-page>[data-id="advancedFPContent"] {
 				transition: all.15s linear;
 				background: rgba(200, 200, 200, .3);
-				border-radius: 11px;
+				border-radius: 10px;
+				width: 100%;
 			}
-			.content>[data-id="advancedFPContent"].hidden {
-				margin-top: -240px;
+			.main-page>[data-id="advancedFPContent"].hidden {
+				margin-top: -500px;
 				pointer-events: none;
 				opacity: 0;
 			}
@@ -61,7 +75,7 @@ export default class Setup extends Popup {
 				align-items: center;
 				height: 38px;
 				border-radius: inherit;
-				padding: 0 11px;
+				padding: 0 8px;
 			}
 			[data-id="advancedFPContent"]>div:hover {
 				background: rgba(131, 170, 239, 0.7);
@@ -73,11 +87,11 @@ export default class Setup extends Popup {
 				cursor: pointer;
 			}
 			/*设置弹窗的按钮关闭样式*/
-			.content>div>span.active {
+			.main-page>div>span.active {
 				background: url(${lib.assetURL}extension/AI禁将/image/button-on.png) no-repeat center center/contain;
 			}
 			/*设置弹窗的按钮开启样式*/
-			.content>div>.slider {
+			.main-page>div>.slider {
 				display: flex;
 				justify-content: space-between;
 				align-items: center;
@@ -144,67 +158,77 @@ export default class Setup extends Popup {
 			thumbWidth,
 			inputWidth
 		}
-
 		this.setCaption('设置');
-		this.setContent(`     
-			<div data-id="clear"><h3>一键清除禁将记录并恢复默认设置</h3></div>
-			<div data-id="remember"><h3>打开界面时加载上次退出的页面</h3><span></span></div>
-			<div data-id="addMenu"><h3>禁将功能添加到游戏顶部菜单栏</h3><span></span></div>
-			<div data-id="importData"><h3>导入禁将设置</h3></div>
-			<div data-id="importDataSelect" class="hidden"><input style="width:75%" type="file" accept="*/*"><button style="padding:0 1vh;">确定</button></div>  
-			<div data-id="exportData"><h3>导出禁将设置</h3></div>
-			<div data-id="setZoom">
-				<h3>界面缩放</h3>
-				<div class="slider">
-					<input type="range" name="slider-input1" min="${minValue}" max="${maxValue}" value="${value}">
-					<input type="number" name="slider-input2" min="${minValue}" max="${maxValue}" value="${value}">
+		this.setContent(`
+			<div class="page-list">
+				<div class="main-page">
+					<div data-id="clear"><h3>一键清除禁将记录并恢复默认设置</h3></div>
+					<div data-id="ioData"><h3>导出/导入禁将设置</h3></div>
+					<div data-id="remember"><h3>打开界面时加载上次退出的页面</h3><span></span></div>
+					<div data-id="addMenu"><h3>禁将功能添加到游戏顶部菜单栏</h3><span></span></div>
+					<div data-id="showClosed"><h3>展示已关闭的武将包和武将</h3><span></span></div>	
+					<div data-id="small"><h3>小型布局</h3><span></span></div>	
+					<div data-id="setZoom">
+						<h3>界面缩放</h3>
+						<div class="slider">
+							<input type="range" name="slider-input1" min="${minValue}" max="${maxValue}" value="${value}">
+							<input type="number" name="slider-input2" min="${minValue}" max="${maxValue}" value="${value}">
+						</div>
+					</div>
+					<div data-id="setVolume">
+						<h3>音效音量</h3>
+						<div class="slider volume-slider">
+							<input type="range" name="slider-input1" min="0" max="100" value="${config.volume_audio}">
+							<input type="number" name="slider-input2" min="0" max="100" value="${config.volume_audio}">
+						</div>
+					</div>
+					<div data-id="advancedFP"><h3>高级伪禁（点击展开）</h3></div>
+					<span data-id="advancedFPContent" class="${globalVars.isAFPHidden ? 'hidden' : ''}">
+						<div data-id="identity_zhu"><h3>【主公伪禁】</h3><h3>切换界面</h3></div>
+						<div data-id="identity_zhong"><h3>【忠臣伪禁】</h3><h3>切换界面</h3></div>
+						<div data-id="identity_fan"><h3>【反贼伪禁】</h3><h3>切换界面</h3></div>
+						<div data-id="identity_nei"><h3>【内奸伪禁】</h3><h3>切换界面</h3></div>
+						<div data-id="doudizhu_1"><h3>【地主伪禁】</h3><h3>切换界面</h3></div>
+						<div data-id="doudizhu_2"><h3>【农民二号位伪禁】</h3><h3>切换界面</h3></div>
+						<div data-id="doudizhu_3"><h3>【农民三号位伪禁】</h3><h3>切换界面</h3></div>
+						<div data-id="versus_two_1"><h3>【2V2一号位伪禁】</h3><h3>切换界面</h3></div>
+						<div data-id="versus_two_2"><h3>【2V2二号位伪禁】</h3><h3>切换界面</h3></div>
+						<div data-id="versus_two_3"><h3>【2V2三号位伪禁】</h3><h3>切换界面</h3></div>
+						<div data-id="versus_two_4"><h3>【2V2四号位伪禁】</h3><h3>切换界面</h3></div>
+					</span>
 				</div>
 			</div>
-			<div data-id="setVolume">
-				<h3>音效音量</h3>
-				<div class="slider volume-slider">
-					<input type="range" name="slider-input1" min="0" max="100" value="${config.volume_audio}">
-					<input type="number" name="slider-input2" min="0" max="100" value="${config.volume_audio}">
-				</div>
-			</div>
-			<div data-id="advancedFP"><h3>高级伪禁(点击展开)</h3></div>
-			<span data-id="advancedFPContent" class="${globalVars.isAFPHidden ? 'hidden' : ''}">
-				<div data-id="identity_zhu"><h3>主公伪禁</h3><h3>切换界面</h3></div>
-				<div data-id="identity_zhong"><h3>忠臣伪禁</h3><h3>切换界面</h3></div>
-				<div data-id="identity_fan"><h3>反贼伪禁</h3><h3>切换界面</h3></div>
-				<div data-id="identity_nei"><h3>内奸伪禁</h3><h3>切换界面</h3></div>
-				<div data-id="doudizhu_1"><h3>地主伪禁</h3><h3>切换界面</h3></div>
-				<div data-id="doudizhu_2"><h3>农民二号位伪禁</h3><h3>切换界面</h3></div>
-				<div data-id="doudizhu_3"><h3>农民三号位伪禁</h3><h3>切换界面</h3></div>
-				<div data-id="versus_two_1"><h3>2V2一号位伪禁</h3><h3>切换界面</h3></div>
-				<div data-id="versus_two_2"><h3>2V2二号位伪禁</h3><h3>切换界面</h3></div>
-				<div data-id="versus_two_3"><h3>2V2三号位伪禁</h3><h3>切换界面</h3></div>
-				<div data-id="versus_two_4"><h3>2V2四号位伪禁</h3><h3>切换界面</h3></div>
-			</span>  
 		`);
 		const content = this.node.content;
-		this.node.content.node = {
-			remember: content.querySelector('div[data-id="remember"]'),
-			addMenu: content.querySelector('div[data-id="addMenu"]'),
-			importData: content.querySelector('div[data-id="importData"]'),
-			importDataSelect: content.querySelector('div[data-id="importDataSelect"]'),
-			exportData: content.querySelector('div[data-id="exportData"]'),
-			clear: content.querySelector('div[data-id="clear"]'),
-			setZoom: content.querySelector('div[data-id="setZoom"]'),
-			setVolume: content.querySelector('div[data-id="setVolume"]'),
-			advancedFP: content.querySelector('div[data-id="advancedFP"]'),
-			advancedFPContent: content.querySelector('span[data-id="advancedFPContent"]')
+		this.node.pageList = content.querySelector('div.page-list');
+		const mainPage = content.querySelector('div.main-page');
+		this.node.pageList.node = {
+			remember: mainPage.querySelector('div[data-id="remember"]'),
+			addMenu: mainPage.querySelector('div[data-id="addMenu"]'),
+			showClosed: content.querySelector('div[data-id="showClosed"]'),
+			small: content.querySelector('div[data-id="small"]'),
+			ioData: mainPage.querySelector('div[data-id="ioData"]'),
+			clear: mainPage.querySelector('div[data-id="clear"]'),
+			setZoom: mainPage.querySelector('div[data-id="setZoom"]'),
+			setVolume: mainPage.querySelector('div[data-id="setVolume"]'),
+			advancedFP: mainPage.querySelector('div[data-id="advancedFP"]'),
+			advancedFPContent: mainPage.querySelector('span[data-id="advancedFPContent"]')
 		};
-		for (const div of this.node.content.node.advancedFPContent.querySelectorAll('div')) {
-			if (div.getAttribute('data-id') === globalVars.fakeProhibitedMode) {
-				const h3 = div.querySelector('h3:last-child');
-				h3.style.color = '#ff647f';
-				h3.textContent = '退出界面';
-				break;
+		let findH2Content = false;
+		for (const div of this.node.pageList.node.advancedFPContent.querySelectorAll('div')) {
+			const h3_1 = div.querySelector('h3:first-child');
+			const id = div.getAttribute('data-id');
+			const desc = `（已禁用：${config.fakeProhibited[id].length}）`;
+			h3_1.textContent += desc;
+			if (id === globalVars.fakeProhibitedMode && !findH2Content) {
+				const h3_2 = div.querySelector('h3:last-child');
+				h3_2.style.color = '#ff647f';
+				h3_2.textContent = '退出界面';
+				findH2Content = true;
 			}
 		}
 		if (!globalVars.isAFPHidden) {
-			this.node.content.node.advancedFP.textContent = '高级伪禁(点击收起)';
+			this.node.pageList.node.advancedFP.textContent = '高级伪禁（点击收起）';
 			this.node.content.scrollTo({
 				top: this.node.content.scrollHeight,
 				behavior: "smooth" // 平滑滚动
@@ -213,14 +237,14 @@ export default class Setup extends Popup {
 		this.#addListener();
 	}
 	#addListener() {
-		const { remember, addMenu, importData, importDataSelect, exportData, clear, setZoom, setVolume, advancedFP, advancedFPContent } = this.node.content.node;
+		const { remember, addMenu, showClosed, small, ioData, clear, setZoom, setVolume, advancedFP, advancedFPContent } = this.node.pageList.node;
 		this.autoToggleConfigBtn(remember);
 		this.autoToggleConfigBtn(addMenu);
+		this.autoToggleConfigBtn(small, () => globalVars.selector.renderCharacterList());
+		this.autoToggleConfigBtn(showClosed, () => globalVars.selector.renderPackList());
 
 		const click = lib.config.touchscreen ? 'touchend' : 'click';
-		importData.addEventListener(click, this.handleClickImportDataConfig.bind(this));
-		importDataSelect.addEventListener(click, this.handleClickImportDataSelectConfig.bind(this));
-		exportData.addEventListener(click, this.handleClickExportDataConfig.bind(this));
+		ioData.addEventListener(click, this.handleClickIODataConfig.bind(this));
 		clear.addEventListener(click, this.handleClickClearConfig.bind(this));
 		setZoom.querySelector('.slider>input[type="range"]').addEventListener('input', this.handleInputSetZoomConfig.bind(this));
 		setZoom.querySelector('.slider>input[type="number"]').addEventListener('input', this.handleInputSetZoomConfig.bind(this));
@@ -240,69 +264,27 @@ export default class Setup extends Popup {
 			config.save().then(callback);
 		});
 	}
-	handleClickImportDataConfig(e) {
-		if (e) utils.playAudio('click2');
-		e.target.closest('[data-id="importData"]').nextElementSibling.classList.toggle('hidden');
-	}
-	handleClickImportDataSelectConfig(e) {
-		const btn = e.target;
-		if (btn.tagName !== 'BUTTON') return;
-		if (e) utils.playAudio('click2');
-		const fileToLoad = btn.previousSibling.files[0];
-		if (fileToLoad) {
-			var fileReader = new FileReader();
-			fileReader.onload = function (fileLoadedEvent) {
-				let data = fileLoadedEvent.target.result;
-				if (!data) return;
-
-				if (fileToLoad?.name?.endsWith('.json')) {
-					data = JSON.parse(data);
-				} else {
-					try {
-						data = JSON.parse(lib.init.decode(data));
-						if (!data || typeof data != 'object') {
-							throw ('文件数据不是一个对象');
-						}
-						const keys = Object.keys(data);
-						if (!keys.length || keys.some(key => !config.hasOwnProperty(key))) {
-							throw ('导入数据识别不到，请检查文件是否正确');
-						}
-					}
-					catch (e) {
-						console.error(e);
-						alert('导入失败');
-						return;
-					}
-				}
-
-				console.log('data', data);
-
-				// 兼容旧版本配置
-				if (Array.isArray(data.bannedList)) {
-					config.prohibited.default.addArray(data.bannedList);
-				}
-				config.save(data).then(() => {
-					globalVars.prohibitedMode = 'default';
-					globalVars.fakeProhibitedMode = 'default';
-					globalVars.prohibitedList = config.prohibitedList.slice();
-
-					alert('导入成功');
-					globalVars.selector.reload();
-				});
-			}
-			fileReader.readAsText(fileToLoad, "UTF-8");
+	handleClickIODataConfig() {
+		const onBack = () => {
+			this.node.pageList.animate([
+				{ opacity: 1, transform: 'translateX(-100%)' },
+				{ opacity: 1, transform: 'translateX(0)' },
+			], {
+				duration: 200,
+				fill: 'forwards'
+			});
 		}
-	}
-	handleClickExportDataConfig(e) {
-		if (e) utils.playAudio('click2');
-		const directory = `extension/AI禁将/settings`;
-		const fileNameToSaveAs = ('AI禁将 - 设置 - ' + new Date().toLocaleString() + '.json').replace(/\\|\/|:|\?|"|\*|<|>|\|/g, ".");
-		game.writeFile(JSON.stringify(config, null, 2), directory, fileNameToSaveAs, (result) => {
-			if (result instanceof Error) {
-				alert("文件导出失败，错误信息：" + result);
-			} else {
-				alert("文件已导出至" + directory + '/' + fileNameToSaveAs);
-			}
+		import('./Settings.js').then(module => {
+			const Settings = module.default;
+			const settings = new Settings(onBack);
+			this.node.pageList.appendChild(settings);
+		});
+		this.node.pageList.animate([
+			{ opacity: 1, transform: 'translateX(0)' },
+			{ opacity: 1, transform: 'translateX(-100%)' },
+		], {
+			duration: 200,
+			fill: 'forwards'
 		});
 	}
 	handleClickClearConfig(e) {
@@ -316,8 +298,8 @@ export default class Setup extends Popup {
 		}
 	}
 	handleInputSetZoomConfig(e) {
-		const rangeInput = this.node.content.node.setZoom.querySelector('.slider>input[type="range"]');
-		const numberInput = this.node.content.node.setZoom.querySelector('.slider>input[type="number"]');
+		const rangeInput = this.node.pageList.node.setZoom.querySelector('.slider>input[type="range"]');
+		const numberInput = this.node.pageList.node.setZoom.querySelector('.slider>input[type="number"]');
 		const { minValue, maxValue, thumbWidth, inputWidth } = this.state;
 		const value = Math.max(minValue, Math.min(maxValue, +e.target.value));
 
@@ -325,13 +307,13 @@ export default class Setup extends Popup {
 		const relativeValue = (value - minValue) / (maxValue - minValue);
 		rangeInput.style.setProperty('--sl-custom-width', `${relativeValue * (inputWidth - thumbWidth)}px`);
 		const zoom = (relativeValue * Constant.zoomRange + Constant.minZoom);
-		document.documentElement.style.setProperty('--sl-layout-zoom', zoom);
-		config.computedZoom = zoom * game.documentZoom;
+		document.documentElement.style.setProperty('--sl-layout-zoom', zoom / globalVars.uiZoom);
+		config.zoom = zoom;
 		config.save();
 	}
 	handleInputSetVolumeConfig(e) {
-		const rangeInput = this.node.content.node.setVolume.querySelector('.slider>input[type="range"]');
-		const numberInput = this.node.content.node.setVolume.querySelector('.slider>input[type="number"]');
+		const rangeInput = this.node.pageList.node.setVolume.querySelector('.slider>input[type="range"]');
+		const numberInput = this.node.pageList.node.setVolume.querySelector('.slider>input[type="number"]');
 		(e.target === rangeInput ? numberInput : rangeInput).value = e.target.value;
 		const { thumbWidth, inputWidth } = this.state;
 		rangeInput.style.setProperty('--sl-custom-volume-width', `${e.target.value * (inputWidth - thumbWidth) / 100}px`);
@@ -344,13 +326,21 @@ export default class Setup extends Popup {
 		const isHidden = target.nextElementSibling.classList.toggle('hidden');
 		const HTML = target.innerHTML;
 		globalVars.isAFPHidden = isHidden;
-		target.innerHTML = isHidden ? HTML.replace('(点击收起)', '(点击展开)') : HTML.replace('(点击展开)', '(点击收起)');
+		if (!globalVars.isAFPHidden) {
+			setTimeout(() => {
+				this.node.content.scrollTo({
+					top: this.node.content.scrollHeight,
+					behavior: "smooth" // 平滑滚动
+				});
+			}, 200);
+		}
+		target.innerHTML = isHidden ? HTML.replace('（点击收起）', '（点击展开）') : HTML.replace('（点击展开）', '（点击收起）');
 	}
 	handleClickAdvancedFPContent(e) {
 		if (e.target.matches('div>h3:last-child')) {
 			utils.playAudio('click2');
 			if (JSON.stringify([...globalVars.prohibitedList].sort()) !== JSON.stringify([...config.prohibitedList].sort())) {
-				if (!confirm('当前界面禁将的选择还没保存，确定要切换吗？')) return;
+				if (!confirm('当前界面的禁将选择还没保存，确定要切换吗？')) return;
 			}
 			setTimeout(() => this.close(), 0);
 
@@ -378,3 +368,4 @@ export default class Setup extends Popup {
 }
 
 customElements.define('selector-popup-setup', Setup);
+
