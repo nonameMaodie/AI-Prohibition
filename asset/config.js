@@ -1,16 +1,31 @@
 import { lib, game, ui, get, ai, _status } from "../../../noname.js";
+import globalVars from "../asset/globalVars.js";
 
 class Config {
 	static get #defaultConfig() {
 		return {
-			record: ['默认', 'all', 'all', 0, false],
-			bannedList: [],
-			defaultImage: false,
-			addMenu: false,
-			remember: true,
-			small: false,
-			hide: false,
-			computedZoom: 1,
+			record: ['默认', 'all', 'all', 0, false, false],
+			addMenu: true, // 是否添加到菜单栏
+			remember: true, // 记住界面状态
+			computedZoom: 1, // 当前缩放比例
+			volume_audio: 30, // 音效音量
+			prohibited: {
+				default: [], // 仅点将禁用列表
+			},
+			fakeProhibited: {
+				default: [], // 一般伪禁将列表
+				identity_zhu: [], // 主公伪禁将列表
+				identity_zhong: [], // 忠臣伪禁将列表
+				identity_fan: [], // 反贼伪禁将列表
+				identity_nei: [], // 内奸伪禁将列表
+				doudizhu_1: [], // 地主伪禁将列表
+				doudizhu_2: [], // 二号位农民伪禁将列表
+				doudizhu_3: [], // 三号位农民伪禁将列表
+				versus_two_1: [], // 一号位2v2伪禁将列表
+				versus_two_2: [], // 二号位2v2伪禁将列表
+				versus_two_3: [], // 三号位2v2伪禁将列表
+				versus_two_4: [], // 四号位2v2伪禁将列表
+			}
 		}
 	}
 
@@ -29,59 +44,109 @@ class Config {
 	/** * @type { boolean } 是否在显示“禁将列表” */
 	get isCharSelectedActive() { return this.remember ? this.record[4] : Config.#defaultConfig.record[4]; }
 	set isCharSelectedActive(value) { this.record[4] = value; }
-
+	/** * @type { boolean } 是否按下了“伪禁”按钮 */
+	get isFakeProhibitedActive() { return this.remember ? this.record[5] : Config.#defaultConfig.record[5]; }
+	set isFakeProhibitedActive(value) { this.record[5] = value; }
 	constructor() {
-		game.saveExtensionConfigValue = game.saveExtensionConfigValue || function (extension, key) {
-			return game.saveExtensionConfig(extension, key, game.getExtensionConfig(extension, key))
-		};
-
 		let config = game.getExtensionConfig('AI禁将', 'forbidai');
 		if (config === void 0 || typeof config !== 'object') {
 			game.saveExtensionConfig('AI禁将', 'forbidai', Config.#defaultConfig);
 			config = game.getExtensionConfig('AI禁将', 'forbidai');
 		}
+		// 兼容旧版本配置
+		if (Array.isArray(config.bannedList)) {
+			if (!config.prohibited) config.prohibited = {};
+			if (!config.prohibited.default) config.prohibited.default = [];
+			config.prohibited.default.addArray(config.bannedList);
+		}
 		Object.setPrototypeOf(config, this);
-		config.autoAddProperty();
 		config.save();
 		return config;
 	}
 	/**
 	 * 保存配置
 	 * @param { object? } value 配置
+	 * @returns { Promise<void> }
 	 */
-	save(value) {
+	save = globalVars.debounce(function (value) {
 		if (value) {
-			Object.assign(this, value);
+			Object.deepAssign(this, value);
 		}
+		this.autoAdjustProperties();
+		game.saveExtensionConfigValue('AI禁将', 'forbidai');
+	}, null, true);
+	/**
+	 * 重置为默认配置
+	 *  @returns { Promise<void> }
+	 */
+	saveDefault() {
+		return this.save(Config.#defaultConfig);
+	}
+	/**
+	 * 自动增刪配置项
+	 */
+	autoAdjustProperties(deep = false) {
 		const defaultConfig = Config.#defaultConfig;
 		Object.keys(this).forEach(key => {
 			if (!defaultConfig.hasOwnProperty(key)) {
 				delete this[key];
 			}
 		})
-		this.autoAddProperty();
-		game.saveExtensionConfigValue('AI禁将', 'forbidai');
+		const fn = function (obj, defaultConfig) {
+			Object.keys(defaultConfig).forEach(key => {
+				if (obj[key] === void 0) {
+					obj[key] = defaultConfig[key];
+				}
+				if (typeof defaultConfig[key] === 'object') {
+					fn(obj[key], defaultConfig[key]);
+				}
+			})
+		};
+		fn(this, defaultConfig);
 	}
 	/**
-	 * 重置为默认配置
+	 * @returns {"fakeProhibited"|"prohibited"}
 	 */
-	saveDefault() {
-		this.save(Config.#defaultConfig);
+	get prohibitedType() {
+		return this.isFakeProhibitedActive ? "fakeProhibited" : "prohibited";
 	}
-	/**
-	 * 自动补充配置项
-	 */
-	autoAddProperty() {
-		const defaultConfig = Config.#defaultConfig;
-		Object.keys(defaultConfig).forEach(key => {
-			if (this[key] === void 0) {
-				this[key] = defaultConfig[key];
+	get prohibitedMode() {
+		return this.isFakeProhibitedActive ? globalVars.fakeProhibitedMode : globalVars.prohibitedMode;
+	}
+	get prohibitedList() {
+		return this[this.prohibitedType][this.prohibitedMode];
+	}
+	set prohibitedList(value) {
+		this[this.prohibitedType][this.prohibitedMode] = value;
+	}
+	get prohibitedDesc() {
+		const map = {
+			prohibited: {
+				default: '仅点将可选禁将',
+			},
+			fakeProhibited: {
+				default: '仅玩家可选伪禁',
+				identity_zhu: '主公伪禁',
+				identity_zhong: '忠臣伪禁',
+				identity_fan: '反贼伪禁',
+				identity_nei: '内奸伪禁',
+				doudizhu_1: '地主伪禁',
+				doudizhu_2: '2号农民伪禁',
+				doudizhu_3: '3号农民伪禁',
+				versus_two_1: '1号2V2伪禁',
+				versus_two_2: '2号2V2伪禁',
+				versus_two_3: '3号2V2伪禁',
+				versus_two_4: '4号2V2伪禁',
 			}
-		})
+		}
+		return map[this.prohibitedType][this.prohibitedMode];
 	}
 }
 
-export default new Config();
+const config = new Config();
+globalVars.prohibitedList = config.prohibitedList.slice();
+
+export default config;
 
 
 

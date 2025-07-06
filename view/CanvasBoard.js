@@ -1,5 +1,5 @@
 import { lib, game, ui, get, ai, _status } from "../../../noname.js";
-import Selector from "../view/Selector.js";
+import globalVars from "../asset/globalVars.js";
 
 class Rectangle {
 	/** @type { number } 矩形选框起点X坐标 */
@@ -74,12 +74,10 @@ class Rectangle {
 
 /** @extends HTMLCanvasElement */
 export default class CanvasBoard {
-	/** @type { Selector } 选择器 */
-	seletor
 	/** @type { CanvasRenderingContext2D } 绘制上下文 */
 	ctx
 	/** @type { object } */
-	status = {
+	state = {
 		shape: null, // 当前绘制的图形
 		element: null, // 当前操作的元素,
 		scrollTop: null, // 记录的初始滚动条位置,
@@ -89,9 +87,8 @@ export default class CanvasBoard {
 	/**
 	 * 创建 canvas 元素，用于绘制选框
 	 * @param { HTMLElement } parentNode 父元素
-	 * @param { HTMLDivElement } seletor 选择器
 	 */
-	constructor(parentNode, seletor) {
+	constructor(parentNode) {
 		const cvs = document.createElement('canvas');
 		Object.setPrototypeOf(CanvasBoard.prototype, Object.getPrototypeOf(cvs));
 		Object.setPrototypeOf(cvs, this);
@@ -100,7 +97,6 @@ export default class CanvasBoard {
 		}
 		parentNode.appendChild(cvs);
 		cvs.style.cssText = 'background-color: rgba(170, 170, 170, 0); pointer-events: none; z-index: 100; position: absolute; top:0 ; left:0';
-		cvs.seletor = seletor;
 		cvs.ctx = cvs.getContext('2d');
 		cvs.width = 0;
 		cvs.height = 0;
@@ -111,7 +107,7 @@ export default class CanvasBoard {
 	 * @param { HTMLElement} element 被操作的 dom
 	 * @param { MouseEvent  } oriEvt mousedown 事件对象
 	 */
-	hanldleMouseDown(element, oriEvt) {
+	handleMouseDown(element, oriEvt) {
 		// 将 canvas 自身的宽高调整至与父元素一致
 		const width = this.parentNode.offsetWidth;
 		const height = this.parentNode.offsetHeight;
@@ -123,10 +119,10 @@ export default class CanvasBoard {
 		const { x: relativeX, y: relativeY } = this.getRelativePositionInElement(this.parentNode, oriEvt.clientX, oriEvt.clientY);
 		const { offsetX, offsetY } = oriEvt;
 		const shape = new Rectangle(this, relativeX, relativeY);
-		this.status.shape = shape;
-		this.status.element = element;
-		this.status.scrollTop = element.scrollTop;
-		this.status.virtualRect = {
+		this.state.shape = shape;
+		this.state.element = element;
+		this.state.scrollTop = element.scrollTop;
+		this.state.virtualRect = {
 			startX: offsetX,
 			startY: offsetY
 		}
@@ -142,21 +138,23 @@ export default class CanvasBoard {
 		}
 		// 定义一个处理鼠标抬起的函数
 		const handleMouseUp = e => {
-			const buttons = this.seletor.buttonsArr;
+			const buttons = globalVars.selector.allButtons;
 			const virRect = this.getVirtualRect();
-			let zoom = +window.getComputedStyle(this.seletor.querySelector('.characterList .content>.buttons')).zoom * +window.getComputedStyle(document.documentElement).getPropertyValue('--sl-layout-zoom');
+			let zoom = +window.getComputedStyle(globalVars.selector.querySelector('.characterList .content>.buttons')).zoom * +window.getComputedStyle(document.documentElement).getPropertyValue('--sl-layout-zoom');
 			if (typeof zoom !== 'number' || !zoom) zoom = 1
 			if (buttons) buttons.forEach(btn => {
 				if (this.doRectanglesIntersect(this.getRectangle(btn, zoom), virRect)) {
 					if (e.shiftKey) return;
-					this.seletor.controller[(e.ctrlKey || e.metaKey) ? 'hanldleCharBtnUnselect' : 'hanldleCharBtnSelect'](btn);
+					globalVars.controller[(e.ctrlKey || e.metaKey) ? 'handleCharBtnUnselect' : 'handleCharBtnSelect'](btn);
 				}
 			})
-			this.status.shape = null;
+
+			this.state.shape = null;
 			this.ctx.clearRect(0, 0, this.width, this.height);
-			delete this.status.element;
+			delete this.state.element;
 			window.removeEventListener('mousemove', handleMouseMove);
 			window.removeEventListener('mouseup', handleMouseUp);
+			cancelAnimationFrame(this.drawTimer);
 		}
 		window.addEventListener('mousemove', handleMouseMove);
 		window.addEventListener('mouseup', handleMouseUp);
@@ -202,10 +200,10 @@ export default class CanvasBoard {
 	 * @returns { object }
 	 */
 	getVirtualRect() {
-		const startX = this.status.virtualRect.startX,
-			startY = this.status.virtualRect.startY,
-			endX = this.status.shape.endX,
-			endY = this.status.shape.endY + this.status.element.scrollTop
+		const startX = this.state.virtualRect.startX,
+			startY = this.state.virtualRect.startY,
+			endX = this.state.shape.endX,
+			endY = this.state.shape.endY + this.state.element.scrollTop
 
 		return {
 			startX: Math.min(startX, endX),
@@ -254,13 +252,13 @@ export default class CanvasBoard {
 	 * 实时绘制选框
 	 */
 	draw() {
-		requestAnimationFrame(this.draw.bind(this));
 		this.ctx.clearRect(0, 0, this.width, this.height);
-		if (this.status.shape) {
-			if (this.status.shape.initialY && this.status.element && this.status.element.scrollTop) {
-				this.status.shape.startY = this.status.shape.initialY - this.status.element.scrollTop + this.status.scrollTop;
+		if (this.state.shape) {
+			if (this.state.shape.initialY && this.state.element && this.state.element.scrollTop) {
+				this.state.shape.startY = this.state.shape.initialY - this.state.element.scrollTop + this.state.scrollTop;
 			}
-			this.status.shape.draw();
+			this.state.shape.draw();
 		}
+		this.drawTimer = requestAnimationFrame(this.draw.bind(this));
 	}
 }

@@ -2,32 +2,23 @@ import Popup from "./index.js";
 import { lib, game, ui, get, ai, _status } from "../../../../noname.js";
 import config from "../../asset/config.js";
 import utils from "../../asset/utils.js";
-
-class PlanCardModel {
-	constructor(name, bannedList) {
-		this.name = name;
-		this.bannedList = bannedList.slice();
-		this.id = Date.now().toString(32);
-	}
-}
+import globalVars from "../../asset/globalVars.js";
 
 /** @extends HTMLLIElement */
 class PlanCard {
-	get name() { return this.querySelector('.show>span[data-id="name"]').innerHTML; }
-	set name(value) { this.querySelector('.show>span[data-id="name"]').innerHTML = value; }
-	get data() {
-		const name = this.name;
-		const { bannedList, id } = this._data;
-		return { name, id, bannedList, fileName: this.getFileName(name) };
-	}
-	constructor({ name, bannedList, id }) {
-		const li = document.createElement('li');
-		li._data = { bannedList, id };
-		Object.setPrototypeOf(PlanCard.prototype, Object.getPrototypeOf(li));
-		Object.setPrototypeOf(li, this);
+	/** 
+	 * @param { object } info 一个方案的信息，必须拥有 name 和 type 属性
+	 */
+	constructor(info) {
+		const card = document.createElement('li');
+		Object.setPrototypeOf(PlanCard.prototype, Object.getPrototypeOf(card));
+		Object.setPrototypeOf(card, this);
+		if (!info.id) info = card.createInfo(info.name, info.type);
+		card.info = info;
 		const show = document.createElement('div');
 		show.classList.add('show');
-		show.innerHTML = `<span data-id="name">${name}</span><input type="text" maxlength="6"><span data-id="length">（禁将数量：${bannedList.length}）</span>`;
+		const img = `<img src="${lib.assetURL}extension/AI禁将/image/${info.type === "charactersPool" ? "icon-character" : "icon-locked"}.svg" style="width:20px; height:20px"></img>`;
+		show.innerHTML = `<div data-id="title">${img} <label for="planName">${info.name}</label><input id="planName" type="text" maxlength="7"></div><div data-id="desc">${info.desc}</div>`;
 		const action = document.createElement('div');
 		action.classList.add('action');
 		action.innerHTML = `
@@ -36,180 +27,279 @@ class PlanCard {
 			<span data-id="edit">编辑</span>
 			<span data-id="delete">删除</span>
 		`;
-		li.appendChild(show);
-		li.appendChild(action);
-		return li;
+		card.appendChild(show);
+		card.appendChild(action);
+		return card;
 	}
 	/**
 	 * 获取文件名
-	 * @param { string } str
+	 * @param { object } info
 	 * @returns { string } 
 	 */
-	getFileName(str1) {
-		const { bannedList, id } = this._data;
-		return `${str1}【${bannedList.length}】 - ${id}.json`;
+	getFileName(info) {
+		const { name, id } = info;
+		return `${name}-${id}.json`.replace(/\\|\/|:|\?|"|\*|<|>|\|/g, ".");
+	}
+	createInfo(name, type) {
+		const info = {};
+		info.name = name;
+		info.type = type;
+		info.id = Date.now().toString(32);
+		const prohibitedList = config.prohibitedList;
+		if (type === "charactersPool") {
+			const length = globalVars.model.getAllCharactersId().filter(id => !prohibitedList.includes(id)).length;
+			info.desc = `（仅启用武将: ${length} 个）`;
+		} else {
+			info.desc = `（禁将数量: ${prohibitedList.length}个）`;
+		}
+		info.fileName = this.getFileName(info);
+		return info;
 	}
 }
 
 export default class Plan extends Popup {
-	selector
-	/** @type { number } 最大方案数 */
-	maxLi = 15;
-	/** @type { Promise | null } 当前的 Promise 对象 */
-	currentPromise = null;
-	constructor(parentNode) {
-		super(parentNode, `
-			.content>.add{
-				margin-bottom: 10px;
+	/** @type { number } 最大将池/方案数 */
+	static maxCardNum = 30;
+
+	constructor() {
+		super(`
+			.content{
+				display: flex;
+				justify-content: space-between;
+				gap: 10px;
 			}
-			.content>.add>img{
+			.content>div{
+				width: 100%;
+			}
+			.content .add{
+				margin-bottom: 10px;
+   				padding: 0 5px;
+			}
+			.content .add img{
 				width: 18px;
 				vertical-align: bottom;
 			}
-			.content>.add>span[data-id="text"]{
-			}
-			.content>ul{
+			.content ul{
 				display: grid;
 				gap: 10px;
 				list-style: none;
 			}
-			.content>ul>li {
+			.content ul>li {
 				display: flex;
+				position: relative;
 				justify-content: space-between;
-				align-items: center;
 				background: rgba(200,200,200,.3);
 				border-radius: 10px;
-				height: 38px;
-				text-align: center;
-				padding: 5px;
+				height: 40px;
+				padding: 11px;
+	            transition: 0.5s;
 				box-sizing: border-box;
 			}
-			.content>ul>li>.action {
-				display: flex;
-				gap: 5px;
+			.content ul>li:hover {
+				height: 80px;
+			}		
+			.content ul>li:hover .action{
+				opacity: 1;
+				transform: translate(0, -50%);
+				pointer-events: auto;
 			}
-			.content>ul>li>.show>span[data-id="name"] {
-				 font-size: 16.5px;
+			.content ul>li:hover .show>[data-id="desc"] {
+				opacity: 1;
+				transform: translateY(26px);
+				pointer-events: auto;
 			}
-			.content>ul>li>.show>span[data-id="name"].hidden {
+			.content .show{
+				position: relative;
+				width: 70%;
+			}
+			.content .action{
+				position: absolute;
+				display: grid;
+				gap: 10px;
+				grid-template-columns: repeat(2, 1fr);
+				grid-template-rows: repeat(2, 1fr);
+				text-align: center;
+				align-items: center;
+				width: 28%;
+				color: #ebebeb;
+				right: 10px;
+				top: 40px;
+				opacity: 0;
+				pointer-events: none;
+           		transform: translate(100%, -50%);
+            	transition: all 600ms cubic-bezier(0.4, 0, 0.2, 1);
+			}
+			.content .show>[data-id="title"]{
+				position: absolute;
+			}
+			.content .show>[data-id="desc"]{
+				position: absolute;
+				opacity: 0;
+				pointer-events: none;
+           		transform: translateY(50px);
+            	transition: all 500ms cubic-bezier(0.4, 0, 0.2, 1);
+			}
+			.content .show label[for="planName"] {
+				font-size: 22px;
+				line-height: 22px;
+				font-weight: 550;
+				vertical-align: top;
+			}
+			.content .show label[for="planName"].hidden {
+				 display: none; 
+			}
+			.content .show label[for="planName"] +input{
+				 width: 100px;
 				 display: none;
+				 vertical-align: top;
 			}
-			.content>ul>li>.show>span[data-id="name"] +input{
-				 width: 60px;
-				 display: none;
-			}
-			.content>ul>li>.show>span[data-id="name"].hidden +input{
+			.content .show label[for="planName"].hidden +input{
 				 display: inline;
 			}
-			.content>ul>li>.show>span[data-id="length"] {
-				font-size: 13.5px;
+			.content .show div[data-id="desc"] {
+				font-size: 15px;
+				color: #dbdbdb;
 			}
-			.content>ul>li>.action>span {
-				font-size: 14px;
+			.content .action>span {
+				font-size: 17px;
 				cursor: pointer;
 			}
-			.content>ul>li>.action>span:hover {
+			.content .action>span:hover {
 				color: #83AAEF;
 			}
 		`);
-		this.selector = parentNode;
-		this.setCaption('AI禁将——方案');
+		this.setCaption('将池与方案');
 		if (!['electron', 'cordova'].includes(utils.getDeviceType())) {
 			this.setContent('<center style="line-height: 50vh; font-size: 30px;">当前环境不可用</center>');
 		} else {
 			this.readAllJSON()
 				.then(plans => {
-					const add = document.createElement('div');
-					const ul = document.createElement('ul');
-					plans.forEach(item => ul.appendChild(new PlanCard(item)));
-					add.classList.add('add');
-					add.innerHTML = `<img src="${lib.assetURL}extension/AI禁将/image/add.png" style="cursor: pointer;"><span data-id="text"> 添加新的方案</span>`;
-					this.node.content.node = { add, ul };
-					this.setContent(add);
-					this.setContent(ul);
+					const charactersPool = ui.create.div('.charactersPool', `
+							<div class="add"><img src="${lib.assetURL}extension/AI禁将/image/add.png" style="cursor: pointer;"><span data-id="text"> 添加新的将池</span></div>
+							<ul></ul>
+						`);
+					const prohibitedPlan = ui.create.div('.prohibitedPlan', `
+							<div class="add"><img src="${lib.assetURL}extension/AI禁将/image/add.png" style="cursor: pointer;"><span data-id="text"> 添加新的方案</span></div>
+							<ul></ul>
+						`);
+					const charactersPoolUl = charactersPool.querySelector('ul');
+					const prohibitedPlanUl = prohibitedPlan.querySelector('ul');
+					const addPlan = info => (info.type === "charactersPool" ? charactersPoolUl : prohibitedPlanUl).appendChild(new PlanCard(info));
+					utils.executeChunkedTasks(plans, addPlan, 30, () => {
+						[charactersPool, prohibitedPlan].forEach(ele => {
+							const textnode = ele.querySelector('span[data-id="text"]');
+							if (ele.querySelectorAll('ul>li').length >= Plan.maxCardNum) {
+								textnode.innerHTML += '（已达上限）';
+							}
+						})
+					});
+					this.node.content.node = { charactersPool, prohibitedPlan };
+					this.setContent(charactersPool);
+					this.setContent(prohibitedPlan);
 					this.#addListener();
 				});
 		}
 	}
-	/** @returns { PlanCard } */
-	createNewPlanCard() {
-		const ul = this.node.content.node.ul;
-		let str = '方案';
-		let num = 1;
-		const nameArr = Array.from(ul.childNodes, item => item.name);
-		while (true) {
-			const cnNumber = get.cnNumber(num, true);
-			if (nameArr.every(name => name !== str + cnNumber)) {
-				str += cnNumber;
-				break;
+	/** 
+	 * @param { 'charactersPool' | 'prohibitedPlan' } type
+	 * @param { string? } name
+	 * @returns { PlanCard } */
+	createNewPlanCard(type, name) {
+		const info = {};
+		info.type = type;
+		if (!name) {
+			const lis = this.node.content.querySelectorAll('ul>li');
+			let str = type === 'charactersPool' ? '将池' : '方案';
+			let num = 1;
+			const nameArr = Array.from(lis, card => card.info.name);
+			while (true) {
+				const cnNumber = get.cnNumber(num, true);
+				if (nameArr.every(name => name !== str + cnNumber)) {
+					str += cnNumber;
+					break;
+				}
+				num++;
 			}
-			num++;
-		}
-		const model = new PlanCardModel(str, config.bannedList);
-		return new PlanCard(model);
+			info.name = str;
+		} else { info.name = name; }
+		return new PlanCard(info);
 	}
 	#addListener() {
-		const add = this.node.content.node.add;
-		const ul = this.node.content.node.ul;
 		this.node.content.addEventListener(lib.config.touchscreen ? 'touchend' : 'click', e => {
-			if (e.target.matches('.content>.add>img')) {
+			if (e.target.closest('.content .add')) {
 				//添加按钮
 				utils.playAudio('click1');
-				const card = this.createNewPlanCard();
-				this.writeJSON(card).then(() => {
+				const type = e.target.closest('.charactersPool') ? 'charactersPool' : 'prohibitedPlan';
+				game.prompt(`请输入新的${type === 'charactersPool' ? '将池名' : '方案名'}`, null, result => {
+					if (typeof result !== 'string') return;
+					const cardName = result.trim();
+					const card = this.createNewPlanCard(type, cardName);
+					const ul = this.node.content.querySelector(type === 'charactersPool' ? '.charactersPool ul' : '.prohibitedPlan ul');
 					let count = ul.childElementCount;
-					if (count++ >= this.maxLi) return;
-					if (Array.from(ul.childNodes).some(item => item.name === card.name)) {
-						return;
-					}
-					ul.appendChild(card);
-					const textnode = add.querySelector('span[data-id="text"]');
-					if (count >= this.maxLi && !textnode.innerHTML.includes('（已达上限）')) {
-						textnode.innerHTML += '（已达上限）';
-					}
-				});
-			} else if (e.target.closest('.content>ul>li>.action')) {
+					if (count >= Plan.maxCardNum) return;
+					this.writeJSON(card.info).then(() => {
+						ul.appendChild(card);
+						count++;
+						const textnode = this.node.content.querySelector(('.' + type + ' .add span[data-id="text"]'))
+						if (count >= Plan.maxCardNum && !textnode.innerHTML.includes('（已达上限）')) {
+							textnode.innerHTML += '（已达上限）';
+						}
+					});
+
+				})
+			} else if (e.target.closest('.content ul>li>.action')) {
 				switch (e.target.getAttribute('data-id')) {
 					case 'load': {
 						utils.playAudio('click1');
-						const li = e.target.closest('.content>ul>li');
-						config.bannedList = li.data.bannedList.slice();
-						config.save();
-						utils.alert(`读取“${li.name}”成功！`);
-						this.selector.renderCharacterList();
+						const card = e.target.closest('.content ul>li');
+						this.readJSON(card.info.fileName, true)
+							.then(data => {
+								globalVars.prohibitedList = data.prohibitedList;
+								config.prohibitedList = globalVars.prohibitedList.slice();
+								config.save();
+								alert(`读取“${card.info.name}”成功！`);
+								globalVars.selector.renderCharacterList();
+							})
+							.catch((e) => { alert(`读取失败！错误信息：${e}`) });
 						break;
 					}
 					case 'cover': {
 						utils.playAudio('click1');
-						if (utils.confirm('确定覆盖此方案吗？')) {
-							const newCard = this.createNewPlanCard();
-							const oldCard = e.target.closest('.content>ul>li');
-							this.deleteJSON(oldCard)
+						const ul = e.target.closest('.content ul');
+						const type = e.target.closest('.charactersPool') ? 'charactersPool' : 'prohibitedPlan';
+						const oldCard = e.target.closest('.content ul>li');
+						game.prompt(`请输入新的${type === 'charactersPool' ? '将池名' : '方案名'}`, null, result => {
+							if (typeof result !== 'string') return;
+							const cardName = result.trim();
+							const newCard = this.createNewPlanCard(type, cardName);
+							this.deleteJSON(oldCard.info.fileName)
 								.then(() => {
-									return this.writeJSON(newCard);
+									return this.writeJSON(newCard.info);
 								})
 								.then(() => {
 									ul.replaceChild(newCard, oldCard);
-									utils.alert(`新方案“${newCard.name}”已覆盖原方案！`);
+									alert(`新方案“${newCard.info.name}”已覆盖原方案！`);
 								});
-						}
+						})
 						break;
 					}
 					case 'edit': {
 						utils.playAudio('click1');
-						const name = e.target.closest('.content>ul>li').querySelector('span[data-id="name"]')
+						const name = e.target.closest('.content ul>li').querySelector('label[for="planName"]');
 						const input = name.nextElementSibling;
 						this.validateInput(name, input);
 						break;
 					}
 					case 'delete': {
 						utils.playAudio('click1');
-						const oldCard = e.target.closest('.content>ul>li');
-						this.deleteJSON(oldCard)
+						if (!confirm('确定删除此方案吗？')) return;
+						const oldCard = e.target.closest('.content ul>li');
+						const ul = e.target.closest('.content ul');
+						this.deleteJSON(oldCard.info.fileName)
 							.then(() => {
 								oldCard.remove();
-								if (ul.childElementCount < this.maxLi) {
-									const text = add.querySelector('[data-id="text"]');
+								if (ul.childElementCount < Plan.maxCardNum) {
+									const text = ul.previousElementSibling.querySelector('span[data-id="text"]');
 									text.innerHTML = text.innerHTML.replace('（已达上限）', '');
 								}
 							});
@@ -219,19 +309,10 @@ export default class Plan extends Popup {
 			}
 		});
 		this.node.content.addEventListener('dblclick', (e) => {
-			if (e.target.matches('ul>li>.show>span[data-id="name"]')) {
+			if (e.target.matches('label[for="planName"]')) {
 				const name = e.target;
 				const input = name.nextElementSibling;
 				this.validateInput(name, input);
-			} else if (e.target.matches('ul>li')) {
-				const li = e.target;
-				if (navigator.clipboard && navigator.clipboard.writeText) {
-					if (utils.confirm(`是否将“${li.name}”的所有禁将id复制到剪贴板中？`)) {
-						const str = JSON.stringify(li.data.bannedList);
-						navigator.clipboard.writeText(str.substring(1, str.length - 1));
-						utils.alert("复制成功！")
-					}
-				}
 			}
 		});
 	}
@@ -241,7 +322,7 @@ export default class Plan extends Popup {
 	 * @param { HTMLInputElement} input 
 	 */
 	validateInput(name, input) {
-		const li = name.closest('.content>ul>li');
+		const card = name.closest('.content ul>li');
 		name.classList.add('hidden');
 		setTimeout(() => input.focus(), 0);
 		input.onkeydown = (e) => {
@@ -255,103 +336,104 @@ export default class Plan extends Popup {
 			name.classList.remove('hidden');
 			value = value.trim();
 			if (!value) return;
-			if (Array.from(li.parentNode.childNodes).some(item => item !== li && item.name === value)) {
-				utils.alert("命名有重复！");
+			if (Array.from(card.parentNode.childNodes).some(item => item !== card && item.info.name === value)) {
+				alert("命名有重复！");
 				return;
 			}
-			if (!/^[a-zA-Z0-9\s\u4e00-\u9fa5\-\_\.]+(\.[a-zA-Z0-9]+)*$/.test(value)) {
-				utils.alert("命名不合法！");
-				return;
-			}
-			const oldFileName = li.data.fileName;
-			const newFileName = li.getFileName(value);
+			const oldFileName = card.info.fileName;
+			const info = Object.assign({}, card.info);
+			info.name = value;
+			const newFileName = card.getFileName(info);
 			this.renameJSON(oldFileName, newFileName)
 				.then(() => {
-					li.name = value;
-					return this.writeJSON(li);
-				});
+					return this.readJSON(newFileName)
+				})
+				.then(info => {
+					info.name = value;
+					return new Promise(resolve => game.writeFile(JSON.stringify(info, Object.keys(info).remove("fileName"), 2), `extension/AI禁将/plans`, newFileName, data => resolve(data)));
+				}, e => console.error(e))
+				.then(() => {
+					card.querySelector('label[for="planName"]').innerHTML = value;
+					card.info.fileName = newFileName;
+				}, e => console.error(e))
+		}
+	}
+	async readJSON(fileName, parse = false) {
+		const info = await lib.init.promises.json(`${lib.assetURL}extension/AI禁将/plans/${fileName}`);
+		if (!parse) return info;
+		if (info.type === "charactersPool") {
+			info.prohibitedList = globalVars.model.getAllCharactersId().filter(id => !info.charactersPool.includes(id));
+			delete info.charactersPool;
+		}
+		return info;
+	}
+	async oldReadAllJSON() {
+		const [folders, files] = await game.promises.getFileList(`extension/AI禁将/plan`);
+		for (const file of files) {
+			if (file.endsWith('.json')) {
+				const info = await lib.init.promises.json(`${lib.assetURL}extension/AI禁将/plan/${file}`);
+				info.prohibitedList = info.bannedList.slice();
+				await game.promises.removeFile(`extension/AI禁将/plan/${file}`);
+				await game.promises.writeFile(JSON.stringify(info, Object.keys(info).remove("fileName"), 2), `extension/AI禁将/plans`, file);
+			}
+			await game.promises.removeDir('extension/AI禁将/plan');
 		}
 	}
 	/**
 	 * 读取所有的JSON文件
 	 * @returns { Promise<object> }
 	 */
-	readAllJSON() {
-		if (this.currentPromise) {
-			return Promise.reject('上一步操作尚未完成！');
-		}
-		this.currentPromise = new Promise((resolve, reject) => {
-			game.getFileList(`extension/AI禁将/plan`, async (folders, files) => {
-				let num = 0;
-				const plans = [];
-				for (const file of files) {
-					if (num >= this.maxLi) break;
-					if (file.endsWith('.json')) {
-						const data = await new Promise(resolve => {
-							lib.init.json(`${lib.assetURL}extension/AI禁将/plan/${file}`, data => resolve(data), e => console.error('JSON 文件解析失败：\n' + e));
-						});
-						num++;
-						plans.push(data);
-					}
+	async readAllJSON() {
+		const result = await game.promises.checkDir('extension/AI禁将/plan');
+		if (result === 1) await this.oldReadAllJSON();
+		const [folders, files] = await game.promises.getFileList(`extension/AI禁将/plans`);
+		const plans = [];
+		for (const file of files) {
+			if (file.endsWith('.json')) {
+				const info = await this.readJSON(file);
+				for (const key in info) {
+					if (['charactersPool', 'prohibitedList'].includes(key)) delete info[key];
 				}
-				this.currentPromise = null;
-				resolve(plans);
-			}, e => reject(e));
-		})
-		return this.currentPromise;
+				info.fileName = file;
+				plans.push(info);
+			}
+		}
+		plans.sort((planA, planB) => parseInt(planA.id, 32) - parseInt(planB.id, 32));
+		return plans;
 	}
 	/**
 	 * 写入JSON文件
 	 * @param { PlanCard } PlanCard
 	 * @returns { Promise }
 	 */
-	writeJSON(card) {
-		if (this.currentPromise) {
-			return Promise.reject('上一步操作尚未完成！');
+	async writeJSON(info) {
+		const info2 = Object.assign({}, info);
+		if (info2.type === "charactersPool") {
+			info2.prohibitedList = null;
+			info2.charactersPool = globalVars.model.getAllCharactersId().filter(id => !config.prohibitedList.includes(id));
+		} else {
+			info2.charactersPool = null;
+			info2.prohibitedList = config.prohibitedList.slice();
 		}
-		this.currentPromise = new Promise((resolve) => {
-			game.writeFile(JSON.stringify(card.data), `extension/AI禁将/plan`, card.data.fileName, data => {
-				this.currentPromise = null;
-				resolve(data);
-			});
-		})
-		return this.currentPromise;
+		const fileName = info2.fileName;
+		await game.promises.writeFile(JSON.stringify(info2, Object.keys(info2).remove("fileName"), 2), `extension/AI禁将/plans`, fileName);
 	}
 	/**
 	 * 删除JSON文件
 	 * @param { PlanCard } PlanCard
 	 * @returns { Promise }
 	 */
-	deleteJSON(card) {
-		if (this.currentPromise) {
-			return Promise.reject('上一步操作尚未完成！');
-		}
-		this.currentPromise = new Promise(resolve => {
-			game.removeFile(`extension/AI禁将/plan/${card.data.fileName}`, data => {
-				this.currentPromise = null;
-				resolve(data);
-			});
-		})
-		return this.currentPromise;
+	async deleteJSON(fileName) {
+		await game.promises.removeFile(`extension/AI禁将/plans/${fileName}`);
 	}
 	/**
 	 * 重命名JSON文件
-	 * @param { string } oldFile 旧文件名
-	 * @param { string } newFile 新文件名
+	 * @param { string } oldFileName 旧文件名
+	 * @param { string } newFileName 新文件名
 	 * @returns { Promise }
 	 */
-	renameJSON(oldFile, newFile) {
-		if (this.currentPromise) {
-			return Promise.reject('上一步操作尚未完成！');
-		}
-		this.currentPromise = new Promise((resolve, reject) => {
-			const _path = `extension/AI禁将/plan/`;
-			utils.renameFile(_path + oldFile, newFile, data => {
-				this.currentPromise = null;
-				resolve(data);
-			}, e => reject(e));
-		})
-		return this.currentPromise;
+	async renameJSON(oldFileName, newFileName) {
+		await utils.renameFile(`extension/AI禁将/plans/` + oldFileName, newFileName);
 	}
 }
 

@@ -1,0 +1,29 @@
+#cus-toast {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, 200%);
+    padding: 12px 24px;
+    border-radius: 6px;
+    color: white;
+    font-size: 16px;
+    z-index: 9999;
+    pointer-events: none;
+    /* 防止遮挡点击事件 */
+}
+
+#cus-toast.success {
+    background-color: #24A040;
+}
+
+#cus-toast.error {
+    background-color: #E34836;
+}
+
+#cus-toast.info {
+    background-color: #3A95E4;
+}
+#cus-toast.warn {
+    background-color: #FC9E00;
+}
+

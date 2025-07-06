@@ -1,6 +1,5 @@
 import { lib, game, ui, get, ai, _status } from "../../../noname.js";
-import Selector from "../view/Selector.js";
-import SelectorModel from "../model/SelectorModel.js";
+import globalVars from "../asset/globalVars.js";
 import utils from "../asset/utils.js";
 import config from "../asset/config.js";
 import Popup from "../view/Popup/index.js";
@@ -14,14 +13,6 @@ export default class SelectorController {
 	#timeId1;
 	#timeId2;
 	#timeId3;
-	/** * @type { string[] } 被选中的武将id数组*/
-	selectedBannedList = [];
-	/** * @type { string[] } 取消选中的武将id数组*/
-	reducedBannedList = [];
-	/** * @type { Selector } */
-	selector;
-	/** * @type { SelectorModel }  */
-	model;
 	/** * @type { boolean } 是否处于搜索框的搜索状态下 */
 	isSearching;
 	/** * @type { boolean } 若为true，则在等待键盘抬起 */
@@ -30,37 +21,18 @@ export default class SelectorController {
 	onClose
 	/** * @type { Array } 用于记录窗口事件并禁用，关闭时恢复 */
 	recordEvent = [];
-	/**
-	 * @param { Selector } selector 选择器
-	 * @param { SelectorModel } model 选择器模型
-	 */
-	constructor(selector, model) {
-		this.selector = selector;
-		this.model = model;
-		selector.controller = this;
-		model.controller = this;
+	constructor() {
+		globalVars.controller = this;
 	}
 	/**
 	 * @param { "showSystem" | undefined } onClose 
 	 */
 	openSelector(onClose) {
-		this.addBannedEvent(window, 'onkeydown');
-		this.addBannedEvent(lib.config, 'swipe');
+		this.addProhibitedEvent(window, 'onkeydown');
+		this.addProhibitedEvent(lib.config, 'swipe');
 		window.onkeydown = this.onKeydownWindow.bind(this);
 		this.onClose = onClose;
-		this.selector.open();
-	}
-	/**
-	 * @param { string } name 
-	 * @returns { string[] }
-	 */
-	getList(name) {
-		switch (name) {
-			case 'packList': return this.model.getPackListId();
-			case 'packCategories': return this.model.getPackCategoriesId();
-			case 'characters': return this.model.getCharactersId();
-		}
-		return [];
+		globalVars.selector.open();
 	}
 	onKeydownWindow(event) {
 		const key = event.key.toLowerCase();
@@ -72,7 +44,7 @@ export default class SelectorController {
 				}
 				case 'escape':
 				case 'esc': {
-					if (!(this.selector.lastElementChild instanceof Popup)) {
+					if (!(globalVars.selector.lastElementChild instanceof Popup)) {
 						this.onClickCloseBtn();
 					}
 					break;
@@ -81,12 +53,12 @@ export default class SelectorController {
 		} else {
 			switch (key) {
 				case 'a': {
-					const target = this.selector.node.selectAll;
+					const target = globalVars.selector.node.selectAll;
 					this.onClickSelectAllBtn(target);
 					break;
 				}
 				case 'f': {
-					this.selector.node.searchInput.focus();
+					globalVars.selector.node.searchInput.focus();
 					break;
 				}
 				case 's': {
@@ -94,7 +66,7 @@ export default class SelectorController {
 					break;
 				}
 				case 'j': {
-					const target = this.selector.node.charSelectedBtn;
+					const target = globalVars.selector.node.charSelectedBtn;
 					this.onClickCharSelectedBtn(target);
 					break;
 				}
@@ -127,73 +99,70 @@ export default class SelectorController {
 						if (e.key.toLowerCase() !== 'control') return;
 						this.awaitKeyup = false;
 						window.removeEventListener('mousewheel', handleMousewheel);
-						window.removeEventListener('keyup', handleKeyup);
 					};
 					window.addEventListener('mousewheel', handleMousewheel);
-					window.addEventListener('keyup', handleKeyup);
+					window.addEventListener('keyup', handleKeyup, { once: true });
 					break;
 				}
 			}
 		}
 	}
-	onClickSelectContentBtn(target, event) {
-		if (event.target.tagName !== 'SPAN') return;
+	onClickSelectChooseBtn(target, event) {
 		utils.playAudio('click1');
-		const span = target.parentNode.querySelector('.method>span');
-		if (config.currentActiveMode === event.target.innerText) return;
-		span.textContent = event.target.innerText;
-		config.currentActiveMode = event.target.innerText;
-		this.selector.renderPackCategories();
+		if (target.classList.toggle('active'));
+		if (event.target.matches('.select-content span')) {
+			const methodSpan = target.querySelector('.method>span');
+			if (config.currentActiveMode === event.target.innerText) return;
+			methodSpan.textContent = event.target.innerText;
+			config.currentActiveMode = event.target.innerText;
+			globalVars.selector.renderPackCategories();
+		}
 	}
 	onClickHelpBtn(target, event) {
 		if (event) utils.playAudio('click2');
-		new Help(this.selector);
+		new Help(globalVars.selector);
 	}
 	onClickSelectAllBtn(target, event) {
 		if (event) utils.playAudio('click2');
 		if (target.classList.toggle('active')) {
 			target.textContent = '全不选';
-			this.selector.buttonsArr.forEach(btn => {
-				this.hanldleCharBtnSelect(btn);
+			globalVars.selector.allButtons.forEach(btn => {
+				this.handleCharBtnSelect(btn);
 			});
 		} else {
 			target.textContent = '全选';
-			this.selector.buttonsArr.forEach(btn => {
-				this.hanldleCharBtnUnselect(btn);
+			globalVars.selector.allButtons.forEach(btn => {
+				this.handleCharBtnUnselect(btn);
 			});
 		}
 	}
-	autoToggleSelectAllBtn() {
-		if (this.#timeId3) clearTimeout(this.#timeId3);
-		const { selectAll } = this.selector.node;
-		this.#timeId3 = setTimeout(() => {
-			this.#timeId3 = null;
-			if (this.selector.buttonsArr.every(btn => btn.getSelected())) {
-				if (!selectAll.classList.contains('active')) {
-					selectAll.classList.add('active');
-					selectAll.textContent = '全不选';
-				}
-			} else {
-				if (selectAll.classList.contains('active')) {
-					selectAll.classList.remove('active');
-					selectAll.textContent = '全选';
-				}
+	autoToggleSelectAllBtn = globalVars.debounce(function () {
+		const { selectAll } = globalVars.selector.node;
+		if (globalVars.selector.displayedCharsId.every(id => globalVars.prohibitedList.includes(id))) {
+			if (!selectAll.classList.contains('active')) {
+				selectAll.classList.add('active');
+				selectAll.textContent = '全不选';
 			}
-		}, 30);
-	}
+		} else {
+			if (selectAll.classList.contains('active')) {
+				selectAll.classList.remove('active');
+				selectAll.textContent = '全选';
+			}
+		}
+	}, 30)
 	onClickInverseBtn(target, event) {
 		if (event) utils.playAudio('click2');
-		this.selector.buttonsArr.forEach(btn => {
-			this.hanldleCharBtnToggleSelect(btn);
+		globalVars.selector.allButtons.forEach(btn => {
+			this.handleCharBtnToggleSelect(btn);
 		});
 	}
 	onClickPlanBtn(target, event) {
 		if (event) utils.playAudio('click2');
-		new Plan(this.selector);
+		new Plan(globalVars.selector);
 	}
 	onClickSetUpBtn(target, event) {
 		if (event) utils.playAudio('click2');
-		new Setup(this.selector);
+		new Setup(globalVars.selector);
 	}
 	onKeydownSearchInput(target, event) {
 		event.stopPropagation();
@@ -204,42 +173,51 @@ export default class SelectorController {
 	}
 	onInputSearchInput(target, event) {
 		if (target.value !== '') {
-			this.selector.node.searchClean.style.display = 'block';
+			globalVars.selector.node.searchClean.style.display = 'block';
 		} else {
-			this.selector.node.searchClean.style.display = 'none';
+			globalVars.selector.node.searchClean.style.display = 'none';
 		}
 	}
 	onClickSearchClean(target, event) {
-		this.selector.node.searchInput.value = '';
-		this.selector.node.searchInput.focus();
+		globalVars.selector.node.searchInput.value = '';
+		globalVars.selector.node.searchInput.focus();
 		target.style.display = 'none';
 	}
 	onClickSearchBtn(target, event) {
 		this.search();
 	}
 	search() {
-		const selector = this.selector;
+		const selector = globalVars.selector;
 		const value = selector.node.searchInput.value;
 		if (value.trim() === "") {
 			if (this.isSearching) {
 				this.isSearching = false;
 				selector.renderCharacterList();
 			} else {
-				utils.alert("请输入正确内容");
+				alert("请输入正确内容");
 			}
 			return;
 		}
 		const reg = new RegExp(value);
-		const characters = this.model.getCharactersId(c => reg.test(c) || reg.test(lib.translate[c]));
+		const characters = globalVars.model.getCharactersId(c => reg.test(c) || reg.test(lib.translate[c]));
 		this.isSearching = true;
 		selector.renderCharacterList(characters);
-	};
+	}
+	onClickFakeProhibitedBtn(target, event) {
+		if (event) utils.playAudio('click2');
+		target.classList.remove('advancedFP');
+		target.textContent = '伪禁';
+		config.isFakeProhibitedActive = target.classList.toggle('active');
+		globalVars.fakeProhibitedMode = 'default';
+		globalVars.prohibitedList = config.prohibitedList.slice();
+		globalVars.selector.renderCharacterList();
+	}
 	onClickCloseBtn(target, event) {
 		if (event) utils.playAudio('click5');
-		config.scrollLeft = this.selector.node.charPackList.scrollLeft;
+		config.scrollLeft = globalVars.selector.node.charPackList.scrollLeft;
 		config.save();
-		this.selector.close();
-		this.removeAllBannedEvent();
+		globalVars.selector.close();
+		this.removeAllProhibitedEvent();
 		if (ui.dialog) ui.dialog.show();
 		if (this.onClose === "showSystem") {
 			setTimeout(() => {
@@ -269,7 +247,7 @@ export default class SelectorController {
 		if (event) utils.playAudio('click3');
 		const li = event.target.closest('li');
 		if (!li) return;
-		const selector = this.selector;
+		const selector = globalVars.selector;
 		const activeLi = target.querySelector('li.active');
 		if (li === activeLi && !this.isSearching) {
 			return;
@@ -292,28 +270,25 @@ export default class SelectorController {
 		if (event) utils.playAudio('click2');
 		if (target.classList.toggle('active')) {
 			config.isCharSelectedActive = true;
-			this.selector.renderCharacterList();
+			globalVars.selector.renderCharacterList();
 		} else {
 			config.isCharSelectedActive = false;
-			this.selector.renderCharacterList();
+			globalVars.selector.renderCharacterList();
 		}
 	}
 	onClickCharConfirmBtn(target, event) {
 		if (event) utils.playAudio('click2');
-		const num1 = config.bannedList.length;
-		const filterList = this.model.getAllCharactersId().filter(id => window['AI禁将_savedFilter'](id));// 系统禁将数组
-		config.bannedList.addArray(this.selectedBannedList);
-		config.bannedList.removeArray(this.reducedBannedList);
-		config.bannedList.removeArray(filterList);
-		this.selectedBannedList.splice(0, this.selectedBannedList.length);
-		this.reducedBannedList.splice(0, this.reducedBannedList.length);
-		config.save();
-		const num2 = config.bannedList.length;
-		const cordova = utils.getDeviceType() === "cordova";
-		const enter = cordova ? '\n\n' : '<br><br>';
-		const str = `本次禁用武将 ${num2 - num1} 个${enter}自选禁用武将 ${num2} 个${enter}总计禁用武将 ${num2 + filterList.length} 个`;
-		cordova ? utils.alert(str) : utils.asyncAlert(str);
-		this.selector.buttonsArr.forEach(btn => btn.autoblock());
+		const num = globalVars.prohibitedList.length - config.prohibitedList.length;
+		config.prohibitedList = globalVars.prohibitedList.slice();
+		config.save().then(() => {
+			const isCordova = utils.getDeviceType() === "cordova";
+			const enter = isCordova ? '\n\n' : '<br><br>';
+			const success = isCordova ? '禁将成功!' : `<center style="font-size: 22px">禁将成功!</center>`;
+			const str = `${success}${enter}新增【${config.prohibitedDesc}】 ${num} 个`;
+			isCordova ? alert(str) : utils.asyncAlert(str);
+			globalVars.selector.node.loginfo1.textContent = globalVars.selector.displayedCharsId.filter(id => config.prohibitedList.includes(id)).length;
+			globalVars.selector.allButtons.forEach(btn => btn.autoToggleBlock());
+		})
 	}
 	onMousedownCharacterList(target, event) {
 		//不是左键点击直接返回
@@ -322,46 +297,46 @@ export default class SelectorController {
 		if (!button) {
 			const content = target.querySelector('.content-container>.content');
 			if (!content || event.target !== content.querySelector('.buttons')) return;
-			this.selector.canvas.hanldleMouseDown(content, event);
+			globalVars.selector.canvas.handleMouseDown(content, event);
 		} else {
 			target.addEventListener("mouseup", e => {
-				if (e.target.closest('.button.item') === button && !button.isUnselectable) {
+				if (e.target.closest('.button.item') === button) {
 					if (event) {
-						utils.playAudio(button.getSelected() ? 'click6' : 'click4');
+						utils.playAudio(button.hasTag() ? 'click6' : 'click4');
 					}
-					this.hanldleCharBtnToggleSelect(button);
+					this.handleCharBtnToggleSelect(button);
 				}
 			}, { once: true });
 		}
 	}
-	hanldleCharBtnSelect(btn) {
-		btn.select();
-		this.selectedBannedList.add(btn.name);
-		this.reducedBannedList.remove(btn.name);
+	handleCharBtnSelect(btn) {
+		globalVars.prohibitedList.add(btn.name);
+		if (btn.isSkeleton) return;
+		btn.autoSetTag();
 		this.autoToggleSelectAllBtn();
 	}
-	hanldleCharBtnUnselect(btn) {
+	handleCharBtnUnselect(btn) {
+		globalVars.prohibitedList.remove(btn.name);
+		if (btn.isSkeleton) return;
 		btn.unselect();
-		this.selectedBannedList.remove(btn.name);
-		this.reducedBannedList.add(btn.name);
 		this.autoToggleSelectAllBtn();
 	}
-	hanldleCharBtnToggleSelect(btn) {
-		if (btn.getSelected()) {
-			this.hanldleCharBtnUnselect(btn);
-		} else if (!btn.isUnselectable) {
-			this.hanldleCharBtnSelect(btn);
+	handleCharBtnToggleSelect(btn) {
+		if (btn.hasTag()) {
+			this.handleCharBtnUnselect(btn);
+		} else {
+			this.handleCharBtnSelect(btn);
 		}
 	}
 	/**
 	 * @param { object } target 目标对象
 	 * @param { string } key 目标对象的键
 	 */
-	addBannedEvent(target, key) {
+	addProhibitedEvent(target, key) {
 		this.recordEvent.push([target, key, target[key]]);
 		target[key] = typeof target[key] === 'function' ? () => { } : null;
 	}
-	removeAllBannedEvent() {
+	removeAllProhibitedEvent() {
 		this.recordEvent.forEach((item) => {
 			item[0][item[1]] = item[2];
 		});

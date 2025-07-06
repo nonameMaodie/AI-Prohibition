@@ -1,73 +1,103 @@
 import { lib, game, ui, get, ai, _status } from "../../../noname.js";
+import globalVars from "../asset/globalVars.js";
 import config from "../asset/config.js";
 
 /**@extends HTMLDivElement */
 export default class CharacterBtn {
-	/** @type {string} 武将id */
+	static #skeletonButton = null;
+	/** @type { string } 武将id */
 	name;
-	/** @type {boolean} 是否不可选 */
-	isUnselectable;
+	/** @type { boolean } 是否为骨骼样式 */
+	isSkeleton;
 	/**
-	 * @param {string} id 武将id
-	 * @param {string[]} selectedBannedList 已选择武将id数组
+	 * @param { string } id 武将id
+	 * @param { boolean } skeleton 是否渲染为骨架
 	 */
-	constructor(id, selectedBannedList) {
-		const button = ui.create.button(id, 'character', false);
+	constructor(id, skeleton = true) {
+		let button;
+		if (skeleton && CharacterBtn.#skeletonButton) {
+			button = CharacterBtn.#skeletonButton.cloneNode();
+		} else {
+			button = ui.create.button(id, 'character', false);
+		}
+		CharacterBtn.#skeletonButton = CharacterBtn.#skeletonButton || button.cloneNode();
 		Object.setPrototypeOf(CharacterBtn.prototype, Object.getPrototypeOf(button));
 		Object.setPrototypeOf(button, this);
 		button.classList.add('item');
-		button.setAttribute('data-name', id);
 		button.name = id;
-		if (!config.defaultImage) {
-			button.setAttribute('data-src', button.style.backgroundImage);
-		}
-		button.style.backgroundImage = `url(${lib.assetURL}extension/AI禁将/image/default_character.jpg)`;
-		//根据情况渲染武将牌的“不可选”状态
-		if (window['AI禁将_savedFilter'](id)) {
-			button.unselectable();
-			return button;
-		}
-		//根据情况渲染“锁链”提示（tip）
-		if (selectedBannedList.includes(id) || lib.filter.characterDisabled(id)) {
-			button.select();
-		}
-		//根据情况渲染武将牌的“小黑屋”状态
-		if (lib.filter.characterDisabled(id)) {
-			button.block();
+		if (skeleton) {
+			button.isSkeleton = true;
+			button.innerHTML = '';
+			button.style.backgroundImage = '';
+		} else {
+			button.updateState();
 		}
 		return button;
 	}
-	//设置不可选样式
-	unselectable() {
-		// this.style.opacity = '0.5';
-		this.isUnselectable = true;
-		this.style.setProperty('opacity', '0.5', 'important');
+	updateState() {
+		const id = this.name;
+		if (globalVars.prohibitedList.includes(id)) {
+			if (config.prohibitedType === 'prohibited') this.setTag();
+			if (config.prohibitedType === 'fakeProhibited') this.setFakeTag();
+		}
+		if (config.prohibitedList.includes(id)) this.block();
 	}
-	//获取选择样式元素
-	getSelected() {
-		return this.querySelector('.tip');
-	}
-	//设置选择样式（锁链）
-	select() {
-		if (this.isUnselectable) return;
-		if (!this.getSelected()) ui.create.div('.tip', this);
-	}
-	//设置取消选择样式（解除锁链）
-	unselect() {
-		const tip = this.getSelected();
-		if (tip) this.removeChild(tip);
-	}
-	/** * @returns {boolean} 切换选择样式 */
-	toggleSelect() {
-		if (this.isUnselectable) return;
-		if (this.getSelected()) {
-			this.unselect();
-			return false;
-		} else {
-			this.select();
-			return true;
+	loadData() {
+		if (this.isSkeleton) {
+			this.isSkeleton = false;
+			const id = this.name;
+			ui.create.button(id, 'character', false, false, this);
+			Object.setPrototypeOf(this, CharacterBtn.prototype);
+			this.updateState();
 		}
 	}
+	//获取锁链样式元素
+	getTag() {
+		return this.querySelector('.tag');
+	}
+	//设置锁链样式元素
+	setTag() {
+		if (!this.getTag()) {
+			ui.create.div('.tag', this);
+		}
+	}
+	//获取伪禁样式元素
+	getFakeTag() {
+		return this.querySelector('.fake-tag');
+	}
+	//设置伪禁样式元素
+	setFakeTag() {
+		if (!this.getFakeTag()) {
+			ui.create.div('.fake-tag', this);
+		}
+	}
+	hasTag() {
+		return Boolean(this.getTag() || this.getFakeTag());
+	}
+	autoSetTag() {
+		if (this.hasTag()) return;
+		if (config.isFakeProhibitedActive) {
+			this.setFakeTag();
+		}
+		else this.setTag();
+	}
+	//取消选择样式
+	unselect() {
+		const tag = this.getTag() || this.getFakeTag();
+		if (tag) this.removeChild(tag);
+		// return true; // 成功取消
+		// }
+		// return false;
+	}
+	/** * @returns {boolean} 切换选择样式 */
+	// toggleSelect() {
+	// 	if (this.unselect()) {
+	// 		return false;
+	// 	} else {
+	// 		this.autoSetTag();
+	// 		return true;
+	// 	}
+	// }
 	//获取选择样式元素
 	getBlock() {
 		return this.querySelector('.isselected');
@@ -76,7 +106,6 @@ export default class CharacterBtn {
 	block() {
 		if (this.getBlock()) return;
 		const selected = ui.create.div('.isselected');
-		selected.style.borderRadius = window.getComputedStyle(this).borderRadius;
 		this.insertBefore(selected, this.firstElementChild);
 	}
 	//设置取消已被选择样式（移除小黑屋）
@@ -84,9 +113,9 @@ export default class CharacterBtn {
 		const block = this.getBlock();
 		if (block) this.removeChild(block);
 	}
-	//自动加入/移除小黑屋
-	autoblock() {
-		if (this.getSelected()) this.block();
+	//自动加入小黑屋
+	autoToggleBlock() {
+		if (this.hasTag()) this.block();
 		else this.unblock();
 	}
 }

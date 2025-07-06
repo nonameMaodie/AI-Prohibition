@@ -1,10 +1,11 @@
 import { lib, game, ui, get, ai, _status } from "../../../noname.js";
-import SelectorController from '../controller/SelectorController.js';
+import globalVars from "../asset/globalVars.js";
 import CanvasBoard from './CanvasBoard.js';
 import Dialog from './Dialog.js';
 import CharacterBtn from './CharacterBtn.js';
 import config from "../asset/config.js";
 
+lib.init.css(lib.assetURL + 'extension/AI禁将/view', "Selector");//调用css样式
 /**
  * @type {Selector}
  * @extends {HTMLDivElement}
@@ -12,23 +13,43 @@ import config from "../asset/config.js";
 class Selector extends HTMLDivElement {
 	/** * @type { boolean } 是否已经初始化 */
 	#isInit
-	/** * @type { HTMLDivElement[] } 当前可选的所有武将按钮 */
-	buttonsArr = [];
-	/** * @type { HTMLDivElement[] } 当前的所有武将按钮*/
-	allButtonsArr = [];
 	/** * @type { object } */
 	node
 	/** * @type { HTMLCanvasElement } */
 	canvas
-	/** * @type { SelectorController } */
-	controller
+
+	animationFrameTimer = null;
+
+	forbidai_bg = null;
+	observer = null;
+	/**
+	 * 当前展示的武将id
+	 */
+	displayedCharsId = [];
+	get allButtons() {
+		return Array.from(this.node.characterList.querySelectorAll('.dialog .buttons .item'));
+	}
 	constructor() {
 		super();
+		globalVars.selector = this;
 		this.classList.add('Selector');
+		this.observer = new IntersectionObserver((entries) => {
+			entries.forEach(entry => {
+				const btn = entry.target;
+				setTimeout(() => {
+					if (entry.isIntersecting || entry.intersectionRatio > 0.01) {
+						btn.loadData();
+						this.observer.unobserve(btn);
+					}
+				}, 100);
+			})
+		}, {
+			rootMargin: '100px'
+		})
 		this.innerHTML = `
 			<div class="selector-header">
 				<div class="select">
-					<span class="classification">分类方式：</span>
+					<span class="classification">分类: </span>
 					<span class="choose">
 						<span class="method">
 							<span style="color: #ffe6b7;">默认</span>
@@ -55,13 +76,14 @@ class Selector extends HTMLDivElement {
 					<div class="search-content">
 						<input class="input" type="text" autocomplete="off"
 							accesskey="f" maxlength="100" x-webkit-speech="" x-webkit-grammar="builtin:translate" value=""
-							placeholder="输入武将名称/拼音以搜索" title="输入武将名称/拼音以搜索">
+							placeholder="支持正则搜索" title="支持正则搜索">
 						<div class="search-clean"></div>
 					</div>
 					<button type="button"></button>
 				</form>
+				<div class="selector-header-fake-prohibited">伪禁</div>
 				<div class="selector-header-loginfo">
-					共搜索到<span style="color: #ffe6b7;">0</span>个武将
+					已禁用：<span style="color: #ffe6b7;">0</span>/<span style="color: #ffe6b7;">0</span>个武将
 				</div>
 				<div class="selector-header-close"></div>
 			</div>
@@ -82,7 +104,7 @@ class Selector extends HTMLDivElement {
 			</div>
 	 	 `;
 		this.node = {
-			selectContent: this.querySelector('.selector-header>.select>span>.select-content'),
+			selectChoose: this.querySelector('.selector-header>.select>.choose'),
 			help: this.querySelector('.selector-header-help'),
 			selectAll: this.querySelector('.selector-header-pack>.selectAll'),
 			inverse: this.querySelector('.selector-header-pack>.inverse'),
@@ -91,7 +113,9 @@ class Selector extends HTMLDivElement {
 			searchInput: this.querySelector('.selector-header-search .input'),
 			searchClean: this.querySelector('.selector-header-search .search-clean'),
 			searchBtn: this.querySelector('.selector-header-search>button'),
-			loginfo: this.querySelector('.selector-header-loginfo>span'),
+			fakeProhibitedBtn: this.querySelector('.selector-header-fake-prohibited'),
+			loginfo1: this.querySelector('.selector-header-loginfo>span'),
+			loginfo2: this.querySelector('.selector-header-loginfo>span:last-child'),
 			close: this.querySelector('.selector-header-close'),
 			left: this.querySelector('.selector-list-left'),
 			right: this.querySelector('.selector-list-right'),
@@ -109,32 +133,57 @@ class Selector extends HTMLDivElement {
 		this.renderPackList();
 		const cvs = new CanvasBoard(this.node.characterList, this);
 		this.canvas = cvs;
-
 		document.documentElement.style.setProperty('--sl-layout-zoom', config.computedZoom / game.documentZoom);
-		this.node.selectContent.parentNode.querySelector('.method>span').textContent = config.currentActiveMode;
-		if (config.isCharSelectedActive) {
-			this.node.charSelectedBtn.classList.add('active');
+		if (config.remember) {
+			this.node.selectChoose.querySelector('.method>span').textContent = config.currentActiveMode;
+			if (config.isCharSelectedActive) this.node.charSelectedBtn.classList.add('active');
+			if (config.isFakeProhibitedActive) this.node.fakeProhibitedBtn.classList.add('active');
+		}
+
+		const forbidai_bg = lib.config.extension_AI禁将_forbidai_bg;
+		if (forbidai_bg) {
+			this.style.backgroundImage = forbidai_bg === 'xitong' ? ui.background.style.backgroundImage : `url("${lib.assetURL}extension/AI禁将/image/${forbidai_bg}_bg.jpg")`;
+			const that = this;
+			that.forbidai_bg = forbidai_bg;
+			Object.defineProperty(lib.config, 'extension_AI禁将_forbidai_bg', {
+				get() {
+					return that.forbidai_bg;
+				},
+				set(newValue) {
+					if (that.forbidai_bg !== newValue) {
+						if (newValue !== 'xitong') that.style.backgroundImage = `url("${lib.assetURL}extension/AI禁将/image/${newValue}_bg.jpg")`;
+						else that.style.backgroundImage = window.getComputedStyle(ui.background).backgroundImage;
+						that.forbidai_bg = newValue;
+					}
+				}
+			});
+
+			const observer = new MutationObserver(mutations => {
+				mutations.forEach(mutation => {
+					if (mutation.type === 'attributes' && mutation.attributeName === 'style' && mutation.target === ui.background) {
+						if (that.forbidai_bg === 'xitong') this.style.backgroundImage = window.getComputedStyle(ui.background).backgroundImage;
+					}
+				});
+			});
+			const conf = {
+				attributes: true,
+				attributeFilter: ['style']
+			};
+			observer.observe(ui.background, conf);
 		}
 	}
 	reload() {
 		this.remove();
-		const selector = new Selector();
-		this.controller.selector = selector;
-		selector.controller = this.controller;
-		selector.open();
+		new Selector().open();
 	}
 	/**
 	 * @param { function } onClose 
 	 */
 	open() {
-		const forbidai_bg = game.getExtensionConfig('AI禁将', 'forbidai_bg');
-		if (forbidai_bg) {
-			this.style.backgroundImage = forbidai_bg === 'xitong' ? ui.background.style.backgroundImage : `url("${lib.assetURL}extension/AI禁将/image/${forbidai_bg}_bg.jpg")`;
-		}
 		ui.window.appendChild(this);
 		this.init();
 		this.setAttribute("data-visible", "true");
-		this.node.charPackList.scrollLeft = config.scrollLeft;
+		if (config.remember) this.node.charPackList.scrollLeft = config.scrollLeft;
 	}
 	close() {
 		this.setAttribute("data-visible", "false");
@@ -144,7 +193,7 @@ class Selector extends HTMLDivElement {
 	 * @param { 'packList' | 'packCategories' } name 
 	 */
 	renderList(name) {
-		const list = this.controller.getList(name);
+		const list = globalVars.model.getList(name);
 		let parentNode;
 		let getActiveId;
 		let setActiveId;
@@ -180,7 +229,7 @@ class Selector extends HTMLDivElement {
 			//给li添加自定义属性
 			li.setAttribute('data-id', id);
 			//如果当前li名是当前记录的高亮名，给li添加 active 类名
-			if (id === getActiveId()) li.classList.add('active');
+			if (config.remember && id === getActiveId()) li.classList.add('active');
 			//给li添加内容
 			li.innerHTML = getInnerHTML(id);
 			//将li添加到ul中
@@ -211,17 +260,7 @@ class Selector extends HTMLDivElement {
 	 * @param { string[]? } charactersArr 
 	 */
 	renderCharacterList(charactersArr) {
-		const characters = charactersArr || this.controller.getList('characters');
-		//创建武将按钮
-		this.node.loginfo.textContent = `${characters.length}`;
-		const buttonsArr = [];
-		const allButtonsArr = characters.map(ele => {
-			const btn = new CharacterBtn(ele, this.controller.selectedBannedList);
-			if (!btn.isUnselectable) buttonsArr.push(btn);
-			return btn;
-		});
-		this.buttonsArr = buttonsArr;
-		this.allButtonsArr = allButtonsArr;
+		const characters = charactersArr || globalVars.model.getList('characters');
 		//逐帧渲染和懒加载武将按钮
 		const characterList = this.node.characterList;
 		if (this.node.dialog) this.node.dialog.remove();
@@ -230,64 +269,65 @@ class Selector extends HTMLDivElement {
 		/* const dialog = this.node.dialog || new Dialog(characterList);
 		this.node.dialog = dialog; */
 		dialog.content.innerHTML = '';
-		const buttons = ui.create.div('.buttons', dialog.content);
-		if (config.small) buttons.classList.add('smallzoom');
-		this.renderElements(allButtonsArr, buttons);
-		this.controller.autoToggleSelectAllBtn();
-		if (!config.defaultImage) this.lazyLoad(allButtonsArr);
-	}
-	/**
-	 * 懒加载武将图片
-	 * @param {Array} buttons - 需要懒加载的 DOM 元素数组
-	 */
-	lazyLoad(buttons) {
-		const io = new IntersectionObserver((entries) => {
-			entries.forEach(item => {
-				if (item.isIntersecting) {
-					const btn = item.target;
-					// if (item.intersectionRatio > 0 && item.intersectionRatio <= 1) {
-					if (btn.getAttribute('data-src')) {
-						btn.style.backgroundImage = btn.getAttribute('data-src');
-						io.unobserve(btn);
-					}
-				}
-			})
-		}, {
-			threshold: 0.01 // 触发条件更为宽松
-		})
-		buttons.forEach((it) => {
-			io.observe(it)
-		})
+		const buttonsElement = ui.create.div('.buttons', dialog.content);
+		this.renderElements(characters, buttonsElement);
+		globalVars.controller.autoToggleSelectAllBtn();
 	}
 	/**
 	 * 逐帧渲染大量 DOM 元素
-	 * @param {Array} elements - 需要渲染的 DOM 元素数组
-	 * @param {HTMLElement} container - 容器 DOM 节点
+	 * @param { Array } elements - 需要渲染的 DOM 元素数组
+	 * @param { HTMLElement } container - 容器 DOM 节点
 	 */
-	renderElements(elements, container) {
-		let frame = 0;// 当前帧数
-
-		const renderFrame = function () {
-			const num = 10; // 每帧渲染的元素数量
-			const start = frame * num; // 当前帧的起始索引
-			const end = Math.min(start + num, elements.length); // 当前帧的结束索引
-			// 循环添加元素到容器中
-			for (let i = start; i < end; i++) {
-				container.appendChild(elements[i]);
-			}
-
-			// 如果还有剩余的元素需要渲染，则继续渲染下一帧
-			if (end < elements.length) {
-				frame++; // 增加帧数
-				requestAnimationFrame(renderFrame); // 请求下一帧渲染
-			}
+	renderElements(characters, container) {
+		this.displayedCharsId = characters.slice();
+		this.node.selectAll.removeAttribute('disabled');
+		this.node.inverse.removeAttribute('disabled');
+		if (this.observer) {
+			this.observer.disconnect();
+			this.observe = null;
 		}
 
-		renderFrame();// 开始渲染第一帧
+		let num = 8; // 每帧渲染的元素数量
+		let count_num = 0; //当前渲染的元素起始索引
+		let step = 2; //步长
+		let frame = 0; // 当前帧数
+		if (this.animationFrameTimer) {
+			cancelAnimationFrame(this.animationFrameTimer);
+		}
+
+		const prohibitedList = config.prohibitedList;
+		const renderFrame = () => {
+			const start = count_num;
+			const end = Math.min(count_num + num, characters.length);
+			count_num = end;
+
+			if (num < 150) num += step;
+
+			for (let i = start; i < end; i++) {
+				const char = characters[i];
+				const btn = new CharacterBtn(char, frame !== 0);
+				container.appendChild(btn);
+				this.observer.observe(btn);
+			}
+
+			this.node.loginfo2.textContent = end;
+			if (end < characters.length) {
+				frame++;
+				this.animationFrameTimer = requestAnimationFrame(renderFrame);
+			} else {
+				this.node.loginfo1.textContent = prohibitedList.filter(id => characters.includes(id)).length;
+				this.node.selectAll.removeAttribute('disabled');
+				this.node.inverse.removeAttribute('disabled');
+			}
+		};
+
+		this.node.selectAll.setAttribute('disabled', 'true');
+		this.node.inverse.setAttribute('disabled', 'true');
+		requestAnimationFrame(renderFrame);
 	}
 	#addListener() {
 		const {
-			selectContent,
+			selectChoose,
 			help,
 			selectAll,
 			inverse,
@@ -296,6 +336,7 @@ class Selector extends HTMLDivElement {
 			searchInput,
 			searchClean,
 			searchBtn,
+			fakeProhibitedBtn,
 			close,
 			left,
 			right,
@@ -316,7 +357,7 @@ class Selector extends HTMLDivElement {
 		}
 		const handleEventListener = function (target, eventName, callbackName) {
 			target.addEventListener(eventName, function (e) {
-				selector.controller[callbackName](this, e);
+				globalVars.controller[callbackName](this, e);
 			});
 		}
 		const click = getEvtName('click');
@@ -324,7 +365,7 @@ class Selector extends HTMLDivElement {
 		const mouseup = getEvtName('mouseup');
 
 		handleEventListener(selector, mouseup, 'onMouseupSelector');
-		handleEventListener(selectContent, click, 'onClickSelectContentBtn');
+		handleEventListener(selectChoose, click, 'onClickSelectChooseBtn');
 		handleEventListener(help, click, 'onClickHelpBtn');
 		handleEventListener(selectAll, click, 'onClickSelectAllBtn');
 		handleEventListener(inverse, click, 'onClickInverseBtn');
@@ -334,6 +375,7 @@ class Selector extends HTMLDivElement {
 		handleEventListener(searchInput, 'input', 'onInputSearchInput');
 		handleEventListener(searchClean, click, 'onClickSearchClean');
 		handleEventListener(searchBtn, click, 'onClickSearchBtn');
+		handleEventListener(fakeProhibitedBtn, click, 'onClickFakeProhibitedBtn');
 		handleEventListener(close, click, 'onClickCloseBtn');
 		handleEventListener(left, mousedown, 'onMousedownDirectionBtn');
 		handleEventListener(right, mousedown, 'onMousedownDirectionBtn');

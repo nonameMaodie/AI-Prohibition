@@ -1,5 +1,6 @@
 
 import { lib, game, ui, get, ai, _status } from "../../../../noname.js";
+import globalVars from "../../asset/globalVars.js";
 import utils from "../../asset/utils.js";
 
 /** @extends HTMLElement */
@@ -14,7 +15,7 @@ export default class Popup extends HTMLElement {
 			position: absolute;
 			width: 50%;
 			height: 80%;
-			background: rgba(0, 0, 0, .65);
+			background: rgba(0, 0, 0, .75);
 			box-sizing: border-box;
 			border: 2px solid #ccc;
 			border-radius: 9px;
@@ -33,7 +34,7 @@ export default class Popup extends HTMLElement {
 			flex: 1;
 			height: 30px;
     		line-height: 30px;
-			font-size: 27px;
+			font-size: 30px;
 		}
 		/* 设置弹窗的按钮样式 */
 		.container>.header>span {
@@ -60,14 +61,14 @@ export default class Popup extends HTMLElement {
 	/** @type { object } */
 	node
 	/**
-	 * 创建一个自定义弹窗
-	 * @param { Node } parentNode 父元素
 	 * @param { style } extraStyle 额外样式
 	 */
-	constructor(parentNode, extraStyle) {
+	constructor(extraStyle) {
 		super();
+		const element = globalVars.selector.lastElementChild;
+		if (element instanceof Popup) element.close();
 		this.extraStyle = extraStyle || this.extraStyle;
-		parentNode.appendChild(this);
+		globalVars.selector.appendChild(this);
 	}
 	connectedCallback() {
 		this.style.cssText = `

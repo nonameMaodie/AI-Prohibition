@@ -1,12 +1,13 @@
 import { lib, game, ui, get, ai, _status } from "../../../noname.js";
-import SelectorController from '../controller/SelectorController.js';
+import globalVars from "../asset/globalVars.js";
 import config from "../asset/config.js";
 
 export default class SelectorModel {
 	/** * @type { string[] } 缓存 getAllCharactersId() 的返回值*/
 	#allCharactersId;
-	/** * @type { SelectorController } */
-	controller
+	constructor() {
+		globalVars.model = this;
+	}
 	/**
 	 * 获取所有的武将包id数组，数组的首项加上 'all'
 	 */
@@ -38,7 +39,7 @@ export default class SelectorModel {
 			case '势力':
 				return ['all', ...lib.group];
 			case '性别':
-				return ['all', 'male', 'female', 'double', 'none'];
+				return ['all', 'male', 'female', 'double'];
 		}
 	}
 	/**
@@ -52,7 +53,7 @@ export default class SelectorModel {
 	}
 	/**
 	 * 获取所有或某一个武将包下的武将id数组
-	 * @param {string} pack 'all' 或 武将包id
+	 * @param { string } pack 'all' 或 武将包id
 	 */
 	getPackCharactersId(pack) {
 		if (pack === 'all') return this.getAllCharactersId();
@@ -102,17 +103,37 @@ export default class SelectorModel {
 	 */
 	getCharactersId(filter) {
 		let characters = this.getCurrentCharactersId();
+		const prohibitedList = config.prohibitedList;
+		const prohibitedSet = new Set([...globalVars.prohibitedList, ...prohibitedList]);
 		characters = characters.filter(id => {
 			if (id === void 0 || !this.getAllCharactersId().includes(id)) return false;
-			if (filter && !filter(id)) return false;
-			if (config.isCharSelectedActive && !lib.filter.characterDisabled(id) && !this.controller.selectedBannedList.includes(id)) return false;
-			if (config.hide && window['AI禁将_savedFilter'](id)) return false;
+			if (typeof filter === 'function' && !filter(id)) return false;
+			if (config.isCharSelectedActive && !prohibitedSet.has(id)) return false;
 			return true;
 		});
 		characters = [...new Set(characters)];
 		return characters.sort((a, b) => {
-			return !lib.filter.characterDisabled(b) - !lib.filter.characterDisabled(a) +
-				!window['AI禁将_savedFilter'](b) - !window['AI禁将_savedFilter'](a)
+			const configPH = config.prohibitedList;
+			const currentPH = globalVars.prohibitedList;
+			const AconfigPH = configPH.includes(a);
+			const BconfigPH = configPH.includes(b);
+			const AcurrentPH = currentPH.includes(a);
+			const BcurrentPH = currentPH.includes(b);
+			return (AconfigPH - BconfigPH) * 2 + AcurrentPH - BcurrentPH;
+			// return !lib.filter.characterDisabled(b) - !lib.filter.characterDisabled(a) +
+			// 	!globalVars.forbidai_savedFilter(b) - !globalVars.forbidai_savedFilter(a);
 		})
+	}
+	/**
+ * @param { string } name 
+ * @returns { string[] }
+ */
+	getList(name) {
+		switch (name) {
+			case 'packList': return this.getPackListId();
+			case 'packCategories': return this.getPackCategoriesId();
+			case 'characters': return this.getCharactersId();
+		}
+		return [];
 	}
 }

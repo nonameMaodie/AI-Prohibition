@@ -9,6 +9,8 @@
   --sl-red-btn-color: rgb(231, 51, 51);
   --sl-gray-bg-color: #e0e5e7;
   --sl-gray-border-color: #ccc;
+  --sl-light_orange-color: #d57743;
+  --sl-orange-color: #d56222;
 
   --sl-layout-zoom: 1;
   --sl-layout-size: calc(var(--sl-layout-zoom) * 6px);
@@ -75,17 +77,18 @@
   height: calc(var(--sl-layout-size) * 8);
   justify-content: space-between;
   align-items: center;
-  background-color: rgba(50, 50, 50, 0.3);
+  /* background-color: rgba(50, 50, 50, 0.3); */
 }
 
 /* 头部-分类方式切换 */
 .Selector>.selector-header .select {
   font-size: calc(var(--sl-layout-size) * 2.5);
   box-sizing: border-box;
-  width: calc(var(--sl-layout-size) * 25.2);
+    border-radius: calc(var(--sl-layout-size)* 0.6);
+  width: calc(var(--sl-layout-size) * 15);
   height: calc(var(--sl-layout-size) * 5);
   line-height: calc(var(--sl-layout-size) * 5);
-  font-size: calc(var(--sl-layout-size) * 2);
+  font-size: calc(var(--sl-layout-size) * 1.9);
   background: url(../image/setting.png) no-repeat center center/contain;
   margin-left: calc(var(--sl-layout-size) * 2.5);
 }
@@ -120,11 +123,11 @@
   background: url(../image/hotlist.png) no-repeat center center/contain;
 }
 
-.Selector>.selector-header .select .choose:hover img {
+.Selector>.selector-header .select .choose.active img {
   transform: rotate(-180deg);
 }
 
-.Selector>.selector-header .select .choose:hover .select-content {
+.Selector>.selector-header .select .choose.active .select-content {
   grid-template-rows: 1fr;
 }
 
@@ -146,6 +149,7 @@
 .Selector>.selector-header .selectAll,
 .Selector>.selector-header .inverse,
 .Selector>.selector-header .plan,
+.Selector>.selector-header .selector-header-fake-prohibited,
 .Selector>.selector-content .result>button {
   appearance: none;
   background-color: var(--sl-light_blue-btn-color);
@@ -171,6 +175,12 @@
   background-color: var(--sl-blue-btn-color);
 }
 
+
+.Selector>.selector-header .selector-header-fake-prohibited.active,
+.Selector>.selector-header .selector-header-fake-prohibited.active::before {
+  background-color: var(--sl-orange-color);
+}
+
 .Selector>.selector-header .selectAll.active{
   box-shadow:
     0 calc(var(--sl-layout-size) * 0.33) calc(var(--sl-layout-size) * 1.33) rgba(0, 0, 0, 0.3),
@@ -186,6 +196,21 @@
     rgba(26, 122, 249, 0.8) 0 0 calc(var(--sl-layout-size) * 2.5);
 }
 
+.Selector>.selector-header .selector-header-fake-prohibited.active{
+  box-shadow:
+    0 calc(var(--sl-layout-size) * 0.33) calc(var(--sl-layout-size) * 1.33) rgba(0, 0, 0, 0.3),
+    0 0 0 calc(var(--sl-layout-size) * 0.33) rgba(0, 0, 0, 0.2),
+    inset 0 calc(var(--sl-layout-size) * 0.16) calc(var(--sl-layout-size) * 0.67) rgba(255, 255, 255, 0.15),
+    
+    0 calc(var(--sl-layout-size) * 0.33) calc(var(--sl-layout-size) * 1.33) rgba(213, 98, 34, 0.3), 
+    0 0 0 calc(var(--sl-layout-size) * 0.33) rgba(213, 98, 34, 0.2), 
+    inset 0 calc(var(--sl-layout-size) * 0.16) calc(var(--sl-layout-size) * 0.67) rgba(255, 255, 255, 0.15),
+    rgba(0, 0, 0, 0.2) 0 0 0 calc(var(--sl-layout-size) * 0.16), 
+    rgba(213, 98, 34, 0.4) 0 0 calc(var(--sl-layout-size) * 0.83),
+    rgba(213, 98, 34, 0.4) 0 0 calc(var(--sl-layout-size) * 2), 
+    rgba(213, 98, 34, 0.8) 0 0 calc(var(--sl-layout-size) * 2.5);
+}
+
 .Selector>.selector-header .inverse{
   background-color: var(--sl-yellow-btn-color);
 }
@@ -194,9 +219,19 @@
   background-color: var(--sl-purple-btn-color);
 }
 
+.Selector>.selector-header .selector-header-fake-prohibited{
+  background-color: var(--sl-light_orange-color);
+}
+
+.Selector>.selector-header .selector-header-fake-prohibited.advancedFP{
+  width: calc(var(--sl-layout-size) * 11.5);
+  font-size: calc(var(--sl-layout-size) * 1.9);
+}
+
 .Selector>.selector-header .selectAll::before,
 .Selector>.selector-header .inverse::before,
 .Selector>.selector-header .plan::before,
+.Selector>.selector-header .selector-header-fake-prohibited::before,
 .Selector>.selector-content .result>button::before {
   content: "";
   position: absolute;
@@ -217,13 +252,20 @@
 .Selector>.selector-header .inverse::before{
   background-color: var(--sl-yellow-btn-color);
 }
+
 .Selector>.selector-header .plan::before{
   background-color: var(--sl-purple-btn-color);
+}
+
+.Selector>.selector-header .selector-header-fake-prohibited::before{
+   background-color: var(--sl-light_orange-color);
 }
 
 .Selector>.selector-header .selectAll:active,
 .Selector>.selector-header .inverse:active,
 .Selector>.selector-header .plan:active,
+.Selector>.selector-header .selector-header-fake-prohibited:active,
+.Selector>.selector-header .selector-header-fake-prohibited[data-id],
 .Selector>.selector-content .result>button:active {
   transform: translateY(1px) scale(0.95);
   box-shadow:
@@ -239,6 +281,7 @@
 .Selector>.selector-header .selectAll:hover,
 .Selector>.selector-header .inverse:hover,
 .Selector>.selector-header .plan:hover,
+.Selector>.selector-header .selector-header-fake-prohibited:hover,
 .Selector>.selector-content .result>button:hover{
   filter: brightness(1.05) saturate(1.05);
 }
@@ -262,7 +305,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: calc(var(--sl-layout-size) * 38);
+  width: calc(var(--sl-layout-size) * 23);
   height: calc(var(--sl-layout-size) * 5);
   box-sizing: border-box;
   /* border: .3 solid rgba(255, 132, 0); */
@@ -603,7 +646,8 @@
 }
 
 /* 内容-右侧武将区域-武将链锁提示 */
-.Selector>.selector-content .characterList .item .tip {
+.Selector>.selector-content .characterList .item .tag,
+.Selector>.selector-content .characterList .item .fake-tag {
   position: absolute;
   background: url(../image/locked.png) no-repeat center center/contain;
   width: 100%;
@@ -614,10 +658,16 @@
   transform: scale(1.05);
 }
 
+/* 内容-右侧武将区域-武将链锁提示 */
+ .Selector>.selector-content .characterList .item .fake-tag {
+  filter: brightness(2.8) contrast(1) hue-rotate(336deg);
+}
+
 .Selector>.selector-content>.characterList .item .isselected {
-  box-shadow: rgba(0, 0, 0, 0.8) 0 0 calc(var(--sl-layout-size) * 2) !important;
+  /* box-shadow: rgba(0, 0, 0, 0.8) 0 0 calc(var(--sl-layout-size) * 2) !important; */
   position: absolute;
   background-color: rgba(30, 30, 30, 0.6);
+  border-radius: inherit;
   width: 100%;
   height: 100%;
   left: 0;

@@ -1,0 +1,8 @@
+{
+  "name": "AI禁将",
+  "author": "芒果🥭、157",
+  "intro": "这是一个轻量级、多功能的禁将扩展，提供“仅点将可选禁将”、“仅玩家可选伪禁”以及“高级伪禁”等多种禁将方式，旨在帮助玩家更高效地进行武将筛选与禁用操作，提升对战体验。",
+  "version": "2.2",
+  "diskURL": "https://github.com/nineMangos/AI-Prohibition",
+  "forumURL": ""
+}
