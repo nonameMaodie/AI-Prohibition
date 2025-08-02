@@ -1,4 +1,4 @@
-import { lib, game, ui, get, ai, _status } from "../../../../../noname.js";
+import { lib, game, ui, get, ai, _status } from "../../../../noname.js";
 import globalVars from "../../asset/globalVars.js";
 
 export default class Help extends HTMLIFrameElement {

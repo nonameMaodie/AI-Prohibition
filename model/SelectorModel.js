@@ -1,4 +1,4 @@
-import { lib, game, ui, get, _status } from "../../../../noname.js";
+import { lib, game, ui, get, _status } from "../../../noname.js";
 import globalVars from "../asset/globalVars.js";
 import config from "../asset/config.js";
 import utils from "../asset/utils.js";

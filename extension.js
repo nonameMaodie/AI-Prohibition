@@ -1,4 +1,4 @@
-import { lib, game, ui, get, ai, _status } from "../../../noname.js";
+import { lib, game, ui, get, ai, _status } from "../../noname.js";
 import Selector from "./view/Selector.js";
 import SelectorController from "./controller/SelectorController.js";
 import SelectorModel from "./model/SelectorModel.js";
