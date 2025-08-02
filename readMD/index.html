@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport"
+		content="width=device-width, initial-zoom=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+	<title>Markdown阅读器</title>
+	<script src="./marked.umd.js"></script>
+	<script src="./purify.min.js"></script>
+	<link rel="stylesheet" href="./highlight.min.css">
+	<link rel="stylesheet" href="./highlight.dark.min.css">
+	<link rel="stylesheet" href="./index.css">
+	<script src="./highlight.min.js"></script>
+
+</head>
+
+<body>
+	<header class="header">
+		<div class="logo">
+			<svg title="切换主题" t="1753666883974" class="icon" viewBox="0 0 1024 1024" version="1.1"
+				xmlns="http://www.w3.org/2000/svg" p-id="12459" width="30" height="30">
+				<path
+					d="M731.428571 0c161.572571 0 292.571429 130.998857 292.571429 292.571429v438.857142c0 161.572571-130.998857 292.571429-292.571429 292.571429H292.571429C130.998857 1024 0 893.001143 0 731.428571V292.571429C0 130.998857 130.998857 0 292.571429 0h438.857142z m22.844953 320.121905l-2.681905 0.195047c-12.53181 1.926095-21.455238 13.409524-21.455238 26.819048v316.17219c0 15.335619-8.94781 28.745143-21.455238 34.499048L526.311619 780.190476l223.47581-40.228571c17.895619-3.85219 30.403048-19.163429 30.403047-38.326857v-354.499048c0-17.237333-14.311619-28.745143-28.598857-26.819048z m-484.547048 0l-2.657524 0.097524c-12.312381 1.145905-23.259429 11.824762-23.259428 26.916571v354.499048l0.170666 3.779047c1.511619 17.359238 13.531429 30.96381 30.232381 34.54781L497.688381 780.190476l-182.369524-82.407619-2.803809-1.462857a38.204952 38.204952 0 0 1-18.651429-33.01181V347.136l-0.146286-3.047619c-1.219048-12.068571-9.752381-21.991619-21.308952-23.771429l-2.681905-0.195047z m93.866667-47.713524c-17.871238-11.483429-39.326476 1.926095-39.326476 22.991238v346.819048c0 13.409524 5.36381 24.917333 16.091428 32.572952l155.550476 103.472762h1.77981V375.881143c0-9.581714-5.36381-17.237333-12.507429-22.991238zM699.611429 292.571429c-1.828571-19.407238-22.137905-31.134476-39.204572-20.163048L538.819048 352.889905l-2.584381 2.243047c-5.827048 5.461333-9.923048 12.361143-9.923048 20.748191l1.77981 402.383238 155.550476-103.472762 3.047619-2.389333c8.704-7.582476 13.04381-18.090667 13.043809-30.183619V295.399619z"
+					fill="#42b983" p-id="12460"></path>
+			</svg>
+			<span>Markdown Reader</span>
+		</div>
+		<div class="zoom-controls">
+			<button class="zoom-btn" id="zoomOut" title="缩小">-</button>
+			<div class="zoom-indicator" id="zoomIndicator">100%</div>
+			<button class="zoom-btn" id="zoomIn" title="放大">+</button>
+			<button class="zoom-btn reset" id="zoomReset" title="重置缩放">重置</button>
+		</div>
+		<div class="actions">
+			<button class="theme-toggle" id="themeToggle" title="切换模式">深色模式</button>
+			<button class="exit-reader" id="exitReader" title="退出阅读">退出</button>
+		</div>
+	</header>
+
+	<!-- <div id=> -->
+	<div class="container" id="zoom-container">
+		<div class="sidebar" id="sidebar">
+			<div class="section-title">文档大纲</div>
+			<div id="outlineContainer"></div>
+		</div>
+
+		<button class="toggle-sidebar" id="toggleSidebar">
+			<svg t="1754056324562" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
+				p-id="6354" width="200" height="200">
+				<path
+					d="M769.216 511.936c0-3.712-1.152-7.232-1.856-10.88-0.64-2.368-0.64-4.8-1.408-7.04a50.56 50.56 0 0 0-11.136-17.344l-417.28-417.28a48.96 48.96 0 0 0-68.992-0.96 48.832 48.832 0 0 0 1.024 68.864L654.208 512l-384.64 384.768a48.768 48.768 0 0 0-1.024 68.8 48.768 48.768 0 0 0 68.864-0.96l417.28-417.344a51.2 51.2 0 0 0 11.136-17.344c0.896-2.304 0.896-4.736 1.472-7.04 0.768-3.648 1.92-7.232 1.92-10.944z"
+					fill="#e6e6e6" p-id="6355" data-spm-anchor-id="a313x.search_index.0.i1.6e8f3a81lhmI8U"></path>
+			</svg>
+		</button>
+
+		<div class="content" id="content">
+			<div class="content-wrapper">
+				<!-- Markdown内容区域 -->
+				<div id="markdownContent" class="markdown-body">
+					<div class="file-upload-area">
+						<input type="file" id="fileInput" accept=".md" style="display: none;">
+						<label for="fileInput" class="file-input-label">选择Markdown文件</label>
+						<p id="fileNameDisplay" style="margin-top: 10px;">未选择文件</p>
+					</div>
+
+					<div class="tip">
+						<strong>提示：</strong> 您也可以将Markdown文件拖拽到此区域进行加载
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- </div> -->
+	<div class="message-box" id="messageBox">
+		<div class="message-box-info">
+			<svg fill="none" viewBox="0 0 24 24" width="1em" height="1em">
+				<path fill="currentColor"
+					d="M12 23a11 11 0 100-22 11 11 0 000 22zM7.5 10.59l3 3 6-6L17.91 9l-7.41 7.41L6.09 12l1.41-1.41z"
+					style="
+							font-size: 20px;
+							transform-origin: 0px 0px;
+							d: path(
+								'M 12 23 a 11 11 0 1 0 0 -22 a 11 11 0 0 0 0 22 Z M 7.5 10.59 l 3 3 l 6 -6 L 17.91 9 l -7.41 7.41 L 6.09 12 l 1.41 -1.41 Z'
+							);
+							-webkit-font-smoothing: antialiased;
+							font: 14px / 22px PingFang SC, Microsoft YaHei, Arial Regular;
+							"></path>
+			</svg>代码复制成功
+		</div>
+	</div>
+
+	<script>
+		// 在 marked.setOptions 之后添加自定义渲染器
+		const renderer = new marked.Renderer();
+
+		renderer.code = function (code) {
+			const language = code.lang;
+			const validLang = !!(language && hljs.getLanguage(language));
+			const langClass = validLang ? `language-${language}` : 'language-plaintext';
+
+			// 安全地转义代码内容
+			let highlighted;
+			try {
+				highlighted = validLang ?
+					hljs.highlight(code.text, { language }).value :
+					hljs.highlightAuto(code.text).value;
+			} catch (e) {
+				// 如果高亮失败，使用默认转义
+				highlighted = code.text
+					.replace(/&/g, "&amp;")
+					.replace(/</g, "&lt;")
+					.replace(/>/g, "&gt;")
+					.replace(/"/g, "&quot;")
+					.replace(/'/g, "&#039;");
+			}
+
+			// 添加语言标签和复制按钮的包装器
+			return `
+				<div class="${langClass}" >
+					<div class="code-wrapper">
+						<span class="lang">${language || 'plaintext'}</span>
+						<div class="code-options">
+							<div class="code-copy">
+								<button title = "Copy Code" class="copy"></button >
+								<span>复制</span>
+							</div>	
+						</div>
+					</div>
+					<pre>
+						<code class="${langClass} hljs">${highlighted}</code>
+					</pre>	
+				</div>`;
+		}
+
+		// 配置marked.js
+		marked.setOptions({
+			gfm: true,
+			breaks: true,
+			highlight: (code, lang) => {
+				if (lang && hljs.getLanguage(lang)) {
+					try {
+						return hljs.highlight(code, { language: lang }).value;
+					} catch (__) { }
+				}
+				// 对于无法识别的语言或高亮失败的情况，确保HTML被转义
+				return hljs.highlightAuto(code).value;
+			},
+			renderer
+		});
+
+		// DOM元素引用
+		const sidebar = document.getElementById('sidebar');
+		const logoSvg = document.querySelector('.logo > svg');
+		const themeToggle = document.getElementById('themeToggle');
+		const exitReader = document.getElementById('exitReader');
+		const fileInput = document.getElementById('fileInput');
+		const fileNameDisplay = document.getElementById('fileNameDisplay');
+		const markdownContent = document.getElementById('markdownContent');
+		const fileUploadArea = document.querySelector('.file-upload-area');
+		const contentElement = document.getElementById('content');
+		const toggleSidebar = document.getElementById('toggleSidebar');
+		const outlineContainer = document.getElementById('outlineContainer');
+
+		// 缩放控制元素
+		const zoomContainer = document.getElementById('zoom-container');
+		const zoomOutBtn = document.getElementById('zoomOut');
+		const zoomInBtn = document.getElementById('zoomIn');
+		const zoomResetBtn = document.getElementById('zoomReset');
+		const zoomIndicator = document.getElementById('zoomIndicator');
+
+		const messageBox = document.getElementById('messageBox');
+
+		window.addEventListener('message', (event) => {
+			if (event?.data?.type === 'initialized-markdown') {
+				let { data, absoluteMDUrl } = event.data;
+
+				// 使用matchAll提取所有URL
+				let urls = [...data.matchAll(/[!$]?\[.*?\]\((.*?)\)/g)]
+					.map(match => match[1]);
+
+				// 判断URL是否为相对路径
+				function isRelativeUrl(url) {
+					return !/^(?:[a-z]+:)?\/\//i.test(url) && !url.startsWith('/');
+				}
+
+				urls = [...new Set(urls)]
+				urls.forEach(url => {
+					if (isRelativeUrl(url)) {
+						const absoluteUrl = new URL(url, absoluteMDUrl).href;
+						data = data.replaceAll(url, absoluteUrl);
+					}
+				});
+
+				// 解析Markdown
+				const dirtyHtml = marked.parse(data);
+				const cleanHtml = DOMPurify.sanitize(dirtyHtml);
+
+				markdownContent.innerHTML = cleanHtml;
+
+				// 生成大纲
+				generateOutline();
+				// 重新高亮代码
+				// highlightCode(); // 自定义了renderer.code 已经在内部高亮了 ,这里暂时用不上
+				// 设置滚动监听
+				setupScrollListener();
+				data = null;
+			}
+		});
+
+		// 初始化页面
+		document.addEventListener('DOMContentLoaded', () => {
+			setupThemeToggle();
+			setPrimaryColorToggle();
+			setupExitReader();
+			setupOnCopyCode();
+			setupFileUpload();
+			setupZoomControls(); // 初始化缩放控制
+			setupToggleSidebar();
+		});
+
+		// 退出按钮点击事件
+		function setupExitReader() {
+			exitReader.addEventListener('click', () => {
+				const iframe = window.frameElement;
+				if (iframe) {
+					iframe.remove();
+				} else {
+					location.reload();
+				}
+			});
+		}
+
+		function setPrimaryColorToggle() {
+			let PrimaryColorList = ['251,114,153', '4,153,255', '66,185,131']
+			PrimaryColorList = [...new Set(PrimaryColorList)]
+
+			const savedPrimaryColor = localStorage.getItem('md-primary-color');
+			if (PrimaryColorList.includes(savedPrimaryColor)) {
+				const [r, g, b] = savedPrimaryColor.split(',')
+
+				document.documentElement.style.setProperty('--primary-color-r', r)
+				document.documentElement.style.setProperty('--primary-color-g', g)
+				document.documentElement.style.setProperty('--primary-color-b', b)
+			}
+
+			// 切换主题色
+			function toggle() {
+				for (let i = 0; i < PrimaryColorList.length; i++) {
+					const color = PrimaryColorList[i]
+					const current = [
+						getComputedStyle(document.documentElement).getPropertyValue('--primary-color-r'),
+						getComputedStyle(document.documentElement).getPropertyValue('--primary-color-g'),
+						getComputedStyle(document.documentElement).getPropertyValue('--primary-color-b')
+					].join(',');
+					if (color === current) {
+						const nextIndex = (i + 1) % PrimaryColorList.length
+						const nextColor = PrimaryColorList[nextIndex]
+						localStorage.setItem('md-primary-color', nextColor);
+
+						const [r, g, b] = nextColor.split(',')
+						document.documentElement.style.setProperty('--primary-color-r', r)
+						document.documentElement.style.setProperty('--primary-color-g', g)
+						document.documentElement.style.setProperty('--primary-color-b', b)
+						break
+					}
+				}
+			}
+
+			logoSvg.addEventListener('click', toggle);
+		}
+
+		let opacityTimer = null;
+		function setupOnCopyCode() {
+			markdownContent.addEventListener('click', function (event) {
+				event.stopPropagation();
+				if (event.target.closest('div[class*="language-"] .code-options > .code-copy')) {
+					messageBox.style.opacity = 1;
+					clearTimeout(opacityTimer);
+					opacityTimer = setTimeout(function () {
+						messageBox.style.opacity = 0;
+					}, 1500);
+
+					const code = event.target.closest('div[class*="language-"]').querySelector('code');
+					const codeText = code.innerText;
+					navigator.clipboard.writeText(codeText);
+				}
+			});
+
+		}
+
+		// 设置缩放控制
+		function setupZoomControls() {
+			let zoom = +getComputedStyle(document.documentElement).getPropertyValue('--container-zoom') || 1;
+
+			// 应用缩放并更新指示器
+			function applyZoom() {
+				document.documentElement.style.setProperty('--container-zoom', zoom);
+				zoomContainer.style.zoom = zoom;
+				zoomIndicator.textContent = `${Math.round(zoom * 100)}%`;
+			}
+
+			// 缩小按钮事件
+			zoomOutBtn.addEventListener('click', () => {
+				if (zoom > 0.3) {
+					zoom = Math.max(0.3, zoom - 0.1);
+					applyZoom();
+				}
+			});
+
+			// 放大按钮事件
+			zoomInBtn.addEventListener('click', () => {
+				if (zoom < 2) {
+					zoom = Math.min(2, zoom + 0.1);
+					applyZoom();
+				}
+			});
+
+			// 重置按钮事件
+			zoomResetBtn.addEventListener('click', () => {
+				zoom = 1;
+				applyZoom();
+			});
+
+			// 初始化缩放
+			applyZoom();
+		}
+
+		// 设置主题切换
+		function setupThemeToggle() {
+			const savedTheme = localStorage.getItem('md-theme');
+			if (savedTheme === 'dark') toggleTheme();
+
+			themeToggle.addEventListener('click', () => {
+				toggleTheme();
+				localStorage.setItem('md-theme',
+					document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+			});
+		}
+
+		function toggleTheme() {
+			document.body.classList.toggle('dark-mode');
+			themeToggle.textContent = document.body.classList.contains('dark-mode')
+				? '浅色模式' : '深色模式';
+		}
+
+		// 文件上传设置
+		function setupFileUpload() {
+			// 点击文件标签
+			fileInput.addEventListener('change', handleFileSelect);
+
+			// 拖拽上传
+			fileUploadArea.addEventListener('dragover', (e) => {
+				e.preventDefault();
+				fileUploadArea.style.borderColor = '#42b983';
+			});
+
+			fileUploadArea.addEventListener('dragleave', () => {
+				fileUploadArea.style.borderColor = '#eee';
+			});
+
+			fileUploadArea.addEventListener('drop', (e) => {
+				e.preventDefault();
+				fileUploadArea.style.borderColor = '#eee';
+
+				if (e.dataTransfer.files.length) {
+					processFile(e.dataTransfer.files[0]);
+				}
+			});
+		}
+
+		function handleFileSelect(e) {
+			if (e.target.files.length) {
+				processFile(e.target.files[0]);
+			}
+		}
+
+		function processFile(file) {
+			if (!file.name.endsWith('.md')) {
+				alert('请选择 Markdown 文件 (.md)');
+				return;
+			}
+
+			fileNameDisplay.textContent = file.name;
+
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				// 解析Markdown
+				const dirtyHtml = marked.parse(e.target.result);
+				const cleanHtml = DOMPurify.sanitize(dirtyHtml);
+
+				markdownContent.innerHTML = cleanHtml;
+				// 生成大纲
+				generateOutline();
+				// 重新高亮代码
+				// highlightCode(); // 自定义了renderer.code 已经在内部高亮了 ,这里暂时用不上
+				// 设置滚动监听
+				setupScrollListener();
+			};
+			reader.readAsText(file);
+		}
+
+
+		// 高亮代码块
+		function highlightCode() {
+			document.querySelectorAll('pre code').forEach(el => {
+				hljs.highlightElement(el);
+			});
+		}
+
+		function getIdFunc() {
+			let id = 0;
+			let num = 0;
+			return function () {
+				num++;
+				return (id + num).toString();
+			};
+		}
+		const getId = getIdFunc();
+
+		let ClickedOutlineItem = false;
+		let clickTimer = null;
+		// 生成大纲导航
+		function generateOutline() {
+			outlineContainer.innerHTML = '';
+
+			const headings = markdownContent.querySelectorAll('h1, h2, h3, h4, h5, h6');
+			if (headings.length === 0) {
+				outlineContainer.innerHTML = '<p class="outline-item">无标题结构</p>';
+				return;
+			}
+
+			const outlineList = document.createElement('div');
+			outlineList.className = 'outline-list';
+
+			headings.forEach(heading => {
+				const level = parseInt(heading.tagName.substring(1));
+
+				heading.id = 'heading-' + getId();
+
+				const outlineItem = document.createElement('a');
+				outlineItem.className = `outline-item level-${level}`;
+				outlineItem.href = `#${heading.id}`;
+				outlineItem.textContent = heading.textContent;
+				outlineItem.dataset.id = heading.id;
+
+				outlineItem.addEventListener('click', (e) => {
+					e.preventDefault();
+					ClickedOutlineItem = true;
+					clearTimeout(clickTimer);
+					clickTimer = setTimeout(() => {
+						ClickedOutlineItem = false;
+					}, 600);
+					scrollToHeading(heading.id);
+				});
+
+				outlineList.appendChild(outlineItem);
+			});
+
+			outlineContainer.appendChild(outlineList);
+		}
+
+		// 滚动到指定标题
+		function scrollToHeading(id) {
+			const heading = document.getElementById(id);
+			if (heading) {
+				heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				// 高亮对应大纲项
+				highlightOutlineItem(id);
+			}
+		}
+
+		// 高亮大纲项
+		function highlightOutlineItem(id) {
+			const outlineItems = document.querySelectorAll('.outline-item');
+			outlineItems.forEach(item => {
+				item.classList.remove('active');
+				if (item.dataset.id === id) {
+					item.classList.add('active');
+					// 确保大纲项在可视范围内
+					item.scrollIntoView({ block: 'nearest' });
+				}
+			});
+		}
+
+		// 设置滚动监听
+		function setupScrollListener() {
+			contentElement.addEventListener('scroll', throttle(() => {
+				const headings = markdownContent.querySelectorAll('h1, h2, h3, h4, h5, h6');
+				let currentActiveId = null;
+
+				// 找到当前最接近顶部的标题
+				headings.forEach(heading => {
+					const rect = heading.getBoundingClientRect();
+					if (rect.top >= 0 && rect.top <= 200) {
+						currentActiveId = heading.id;
+					}
+				});
+
+				// 高亮对应大纲项
+				if (currentActiveId && !ClickedOutlineItem) {
+					highlightOutlineItem(currentActiveId);
+				}
+			}, 100));
+		}
+
+		// 节流函数
+		function throttle(func, limit) {
+			let inThrottle;
+			return function () {
+				const args = arguments;
+				const context = this;
+				if (!inThrottle) {
+					func.apply(context, args);
+					inThrottle = true;
+					setTimeout(() => inThrottle = false, limit);
+				}
+			}
+		}
+
+		function setupToggleSidebar() {
+			toggleSidebar.addEventListener('click', function (e) {
+				e.stopPropagation()
+				if (sidebar.classList.toggle('show')) {
+					document.body.addEventListener('click', function () {
+						sidebar.classList.toggle('show')
+					}, { once: true, capture: true });
+				}
+			});
+		}
+	</script>
+</body>
+
+</html>

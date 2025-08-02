@@ -1,5 +1,5 @@
 import Popup from "./index.js";
-import { lib, game, ui, get, ai, _status } from "../../../../noname.js";
+import { lib, game, ui, get, ai, _status } from "../../../../../noname.js";
 import config from "../../asset/config.js";
 import utils from "../../asset/utils.js";
 import globalVars from "../../asset/globalVars.js";

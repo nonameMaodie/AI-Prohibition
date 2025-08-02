@@ -1,4 +1,4 @@
-import { lib, game, ui, get, ai, _status } from "../../../noname.js";
+import { lib, game, ui, get, ai, _status } from "../../../../noname.js";
 import globalVars from "../asset/globalVars.js";
 import utils from "../asset/utils.js";
 import config from "../asset/config.js";
@@ -7,6 +7,7 @@ import Help from "../view/Popup/Help.js";
 import Plans from "../view/Popup/Plans.js";
 import Setup from "../view/Popup/Setup.js";
 import Constant from "../asset/Constant.js";
+import Toast from "../view/Toast.js";
 
 export default class SelectorController {
 	/** * @type { number } 定时任务的id */
@@ -208,6 +209,7 @@ export default class SelectorController {
 		target.classList.remove('advancedFP');
 		target.textContent = '伪禁';
 		config.isFakeProhibitedActive = target.classList.toggle('active');
+		new Toast().info(config.isFakeProhibitedActive ? '已切换至仅玩家可选伪禁' : '已切换至仅点将可选禁将');
 		globalVars.fakeProhibitedMode = 'default';
 		globalVars.prohibitedList = config.prohibitedList.slice();
 		globalVars.selector.renderCharacterList();
@@ -244,22 +246,22 @@ export default class SelectorController {
 		target.scrollLeft += event.deltaY / 2;
 	}
 	onClickList(target, event) {
+		const item = event.target.closest('li[data-id],div[data-id="all-pack"],div[data-id="all-characters"]');
+		if (!item) return;
 		if (event) utils.playAudio('click3');
-		const li = event.target.closest('li');
-		if (!li) return;
 		const selector = globalVars.selector;
-		const activeLi = target.querySelector('li.active');
-		if (li === activeLi && !this.isSearching) {
+		const activeItem = target.querySelector('li.active,div.active');
+		if (item === activeItem && !this.isSearching) {
 			return;
 		};
-		if (activeLi) {
-			activeLi.classList.remove('active');
+		if (activeItem) {
+			activeItem.classList.remove('active');
 		}
 		//给当前点击的 li 添加 active 类名
-		li.classList.add('active');
-		const id = li.getAttribute('data-id');
-		target.tagName === 'UL' ? config.currentActivePackId = id : config.currentActivePackCategoryId = id;
-		target.tagName === 'UL' ? selector.renderPackCategories() : selector.renderCharacterList();
+		item.classList.add('active');
+		const id = item.getAttribute('data-id');
+		target === selector.node.charPackList ? config.currentActivePackId = id : config.currentActivePackCategoryId = id;
+		target === selector.node.charPackList ? selector.renderPackCategories() : selector.renderCharacterList();
 		this.isSearching = false;
 	}
 	onMouseupSelector(target, event) {

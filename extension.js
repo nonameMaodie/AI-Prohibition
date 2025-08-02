@@ -1,18 +1,20 @@
-import { lib, game, ui, get, ai, _status } from "../../noname.js";
+import { lib, game, ui, get, ai, _status } from "../../../noname.js";
 import Selector from "./view/Selector.js";
 import SelectorController from "./controller/SelectorController.js";
 import SelectorModel from "./model/SelectorModel.js";
 import globalVars from "./asset/globalVars.js";
 import config from "./asset/config.js";
 import ployfill from "./asset/polyfill.js";
-import latestHistory from "./asset/updateHistory.js";
+import history from "./asset/updateHistory.js";
 import Toast from "./view/Toast.js";
 
 game.import("extension", function () {
 
+	const latestHistory = history[0];
 	const selectorController = new SelectorController();
 
 	return {
+		editable: false,
 		name: "AI禁将",
 		content: function (cfg, pack) {
 			/* <-------------------------AI禁将-------------------------> */
@@ -455,15 +457,6 @@ game.import("extension", function () {
 			ployfill.run();
 		},
 		config: {
-			"intro": {
-				name: '一个轻量级、多功能的禁将扩展, 感谢《玄武江湖》《全能搜索》等扩展的代码参考。',
-				clear: true,
-			},
-			"date": {
-				name: '更新日期：' + latestHistory.date,
-				clear: true,
-			},
-
 			"updateInfo": {
 				name: `版本：${latestHistory.version}`,
 				init: '1',
@@ -482,13 +475,29 @@ game.import("extension", function () {
 					for (let i of changeLog) {
 						str += `·${i}<br>`;
 					}
+					if (history.length > 1) {
+						str += "<br><---------分割线---------><br>历史更新内容：<br>"
+						for (let i = 1; i < history.length; i++) {
+							str += `<br><b>${history[i].version}</b> (${history[i].date})<br>`;
+							for (let j of history[i].changes) {
+								str += `·${j}<br>`;
+							}
+						}
+					}
 					node.innerHTML = str;
 				},
 			},
 
-			"compatibility": {
-				name: '兼容性：' + latestHistory.compatibility,
+			"date": {
+				name: '更新日期：' + latestHistory.date,
 				clear: true,
+				nopointer: true,
+			},
+
+			"compatibility": {
+				name: '运行环境：' + latestHistory.compatibility,
+				clear: true,
+				nopointer: true,
 			},
 
 			"forbidai_bg": {
@@ -545,20 +554,34 @@ game.import("extension", function () {
 				},
 			},
 
-			"repository1": {
-				clear: true,
-				name: `点击复制github仓库地址`,
-				async onclick() {
-					if (navigator.clipboard && navigator.clipboard.writeText) {
-						await navigator.clipboard.writeText("https://github.com/nineMangos/AI-Prohibition");
-						new Toast().success('复制成功！');
-					} else {
-						new Toast().error('复制失败！');
-					}
-				}
+			"open_md_doc": {
+				"clear": true,
+				name: '<ins style="color:#2cb625">扩展说明文档</ins>',
+				onclick: function () {
+					const readerUrl = lib.assetURL + 'extension/AI禁将/readMD/index.html';
+					const mdUrl = lib.assetURL + 'extension/AI禁将/README.md';
+
+					const a = document.createElement('a');
+					a.href = mdUrl;
+					const absoluteMDUrl = a.href; // 使用a标签的特性获取md文件的绝对路径
+
+					const iframe = document.createElement('iframe');
+					iframe.src = readerUrl;
+					iframe.style.cssText = "position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; border: none;"
+					iframe.setAttribute('allowfullscreen', '');
+					iframe.addEventListener('load', async () => {
+						const markdownContent = await game.promises.readFileAsText(mdUrl);
+						iframe.contentWindow.postMessage({
+							type: 'initialized-markdown',
+							data: markdownContent,
+							absoluteMDUrl,
+						})
+					})
+					ui.window.appendChild(iframe);
+				},
 			},
 
-			"repository2": {
+			"repositor2": {
 				clear: true,
 				name: `点击复制gitee仓库地址`,
 				async onclick() {
@@ -590,7 +613,7 @@ game.import("extension", function () {
 				translate: {
 				},
 			},
-			intro: "",
+			intro: "一个轻量级、多功能的禁将扩展, 感谢《玄武江湖》《全能搜索》等扩展的代码参考。",
 			author: "芒果🥭、157",
 			diskURL: "",
 			forumURL: "",

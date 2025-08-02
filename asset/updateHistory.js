@@ -1,5 +1,15 @@
 const history = [
 	{
+		"version": "v2.4",
+		"date": "2025-08-02",
+		"compatibility": "本体 v1.10.6 及以上版本",
+		"changes": [
+			"冻结按钮“全扩”和“所有武将”，优化操作体验",
+			"增加设置项“一键当前禁将方式的所有禁将记录”",
+			"使用README.md文件取代扩展内的帮助文档，支持在游戏内阅览"
+		]
+	},
+	{
 		"version": "v2.3",
 		"date": "2025-07-04",
 		"compatibility": "本体 v1.10.6 及以上版本",
@@ -47,5 +57,4 @@ const history = [
 	}
 ]
 
-const latestHistory = history[0];
-export default latestHistory;
+export default history;

@@ -1,12 +1,12 @@
-import { lib, game, ui, get, ai, _status } from "../../../noname.js";
-import config from "../asset/config.js";
+import { lib, game, ui, get, ai, _status } from "../../../../noname.js";
+import config from "./config.js";
 
 class Utils {
 	frequencyTimes = 0;
 
 	/** @type { boolean } */
 	alerting = false;
-	path = this.getDeviceType() === "electron" ? require('path') : void 0;
+	path = this.getDeviceType() === "electron" ? lib.node.path : void 0;
 	/**
 	 * @param { string } name 音频名
 	 */

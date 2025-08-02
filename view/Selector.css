@@ -1,4 +1,9 @@
-:root {
+:root{
+  --sl-layout-zoom: 1;
+  --sl-layout-size: calc(var(--sl-layout-zoom) * 6px);
+}
+
+.Selector {
   --sl-white-text-color: #fff;
   --sl-yellow-btn-color: #e6b631;
   --sl-purple-btn-color: #a265e8;
@@ -11,9 +16,6 @@
   --sl-gray-border-color: #ccc;
   --sl-light_orange-color: #d57743;
   --sl-orange-color: #d56222;
-
-  --sl-layout-zoom: 1;
-  --sl-layout-size: calc(var(--sl-layout-zoom) * 6px);
 }
 
 /*清除无名杀div默认样式*/
@@ -463,14 +465,15 @@
   align-items: center;
   list-style: none;
   margin: 0;
-  padding: 0 0 0 calc(var(--sl-layout-size) * 1);
+  padding: 0;
   overflow-x: scroll;
   overflow-y: hidden;
   transition: all 0.5s ease; 
   white-space: nowrap;
 }
 
-.Selector>.selector-list ul li {
+.Selector>.selector-list ul li,
+.Selector>.selector-list div[data-id="all-pack"]{
   flex-shrink: 0;
   min-width: calc(var(--sl-layout-size) * 13.5);
   /* min-height: auto; */
@@ -484,7 +487,14 @@
   transition: all .1s linear;
 }
 
-.Selector>.selector-list ul li.active {
+.Selector>.selector-list div[data-id="all-pack"]{
+  font-size: calc(var(--sl-layout-size)* 3);
+  padding-left: calc(var(--sl-layout-size) * 1);
+  align-self: center;
+}
+
+.Selector>.selector-list ul li.active,
+.Selector>.selector-list div[data-id="all-pack"].active {
   background: url(../image/packAtive.png) no-repeat center center/contain;
   transform: scale(1.05);
 }
@@ -506,7 +516,7 @@
 
 /*内容-武将包分类按钮*/
 .Selector>.selector-content>.selector-content-characterSort ol {
-  height: calc(100% - calc(var(--sl-layout-size) * 20));
+  height: calc(100% - calc(var(--sl-layout-size) * 30));
   list-style: none;
   margin: 0;
   padding: 0;
@@ -514,7 +524,8 @@
   overflow-x: hidden;
 }
 
-.Selector>.selector-content>.selector-content-characterSort ol li {
+.Selector>.selector-content>.selector-content-characterSort ol li,
+.Selector>.selector-content>.selector-content-characterSort div[data-id="all-characters"] {
   /* width: 100%; */
   height: calc(var(--sl-layout-size) * 9.5);
   line-height: calc(var(--sl-layout-size) * 9.5);
@@ -524,7 +535,13 @@
   transition: all .1s linear;
 }
 
-.Selector>.selector-content>.selector-content-characterSort ol li.active {
+.Selector>.selector-content>.selector-content-characterSort div[data-id="all-characters"]{
+  font-size: calc(var(--sl-layout-size)* 3);
+  width: 100%;
+}
+
+.Selector>.selector-content>.selector-content-characterSort ol li.active,
+.Selector>.selector-content>.selector-content-characterSort div[data-id="all-characters"].active {
   /* width: 100%; */
   transform: scale(0.86);
   background: url(../image/modebtn2.png) no-repeat center center/contain;

@@ -90,10 +90,12 @@ class Selector extends HTMLDivElement {
 			<div class="selector-list">
 				<button class="selector-list-left" title="向左滚动"></button>
 				<button class="selector-list-right" title="向右滚动"></button>
+				<div data-id="all-pack">全扩</div>
 				<ul></ul>
 			</div>
 			<div class="selector-content">
 				<div class="selector-content-characterSort">
+					<div data-id="all-characters">所有武将</div>
 					<ol></ol>
 					<div class="result">
 		  				<button class="charSelectedBtn">禁将列表</button>
@@ -102,7 +104,7 @@ class Selector extends HTMLDivElement {
 				</div>
 				<div class="characterList"></div>
 			</div>
-	 	 `;
+	 	  `;
 		this.node = {
 			selectChoose: this.querySelector('.selector-header>.select>.choose'),
 			help: this.querySelector('.selector-header-help'),
@@ -119,8 +121,8 @@ class Selector extends HTMLDivElement {
 			close: this.querySelector('.selector-header-close'),
 			left: this.querySelector('.selector-list-left'),
 			right: this.querySelector('.selector-list-right'),
-			charPackList: this.querySelector('.selector-list ul'),
-			charPackCategories: this.querySelector('.selector-content-characterSort ol'),
+			charPackList: this.querySelector('.selector-list'),
+			charPackCategories: this.querySelector('.selector-content-characterSort'),
 			charSelectedBtn: this.querySelector('.selector-content-characterSort .charSelectedBtn'),
 			charConfirmBtn: this.querySelector('.selector-content-characterSort .charConfirmBtn'),
 			characterList: this.querySelector('.selector-content>.characterList'),
@@ -202,23 +204,26 @@ class Selector extends HTMLDivElement {
 		let getActiveId;
 		let setActiveId;
 		let getInnerHTML;
+		let firstElement;
 		let next = () => { };
 
 		if (name === 'packList') {
-			parentNode = this.node.charPackList;
+			parentNode = this.node.charPackList.querySelector('ul');
 			getActiveId = () => config.currentActivePackId;
 			setActiveId = (id) => config.currentActivePackId = id;
 			getInnerHTML = (id) => {
-				return id === 'all' ? '全扩' : (lib.translate[id + '_character_config'] || '')
+				return id === 'all-pack' ? '全扩' : (lib.translate[id + '_character_config'] || '')
 			}
+			firstElement = this.node.charPackList.querySelector('div[data-id="all-pack"]')
 			next = this.renderPackCategories.bind(this);
 		} else if (name === 'packCategories') {
-			parentNode = this.node.charPackCategories;
+			parentNode = this.node.charPackCategories.querySelector('ol');
 			getActiveId = () => config.currentActivePackCategoryId;
 			setActiveId = (id) => config.currentActivePackCategoryId = id;
 			getInnerHTML = (id) => {
-				return id === 'all' ? '所有武将' : (lib.translate[id] || '');
+				return id === 'all-characters' ? '所有武将' : (lib.translate[id] || '');
 			}
+			firstElement = this.node.charPackCategories.querySelector('div[data-id="all-characters"]')
 			next = this.renderCharacterList.bind(this);
 		} else {
 			throw new Error('name must be "packList" or "packCategories",name:', name);
@@ -242,10 +247,9 @@ class Selector extends HTMLDivElement {
 
 		//如果没有高亮li，则给第一个li添加 active 类名
 		const activeLi = parentNode.querySelector('li.active');
-		const firstChild = parentNode.firstChild;
-		if (!activeLi && firstChild) {
-			firstChild.classList.add('active');
-			setActiveId(firstChild.getAttribute('data-id'));
+		if (!activeLi && firstElement) {
+			firstElement.classList.add('active');
+			setActiveId(firstElement.getAttribute('data-id'));
 		}
 
 		//调用next函数
@@ -387,7 +391,7 @@ class Selector extends HTMLDivElement {
 		handleEventListener(close, click, 'onClickCloseBtn');
 		handleEventListener(left, mousedown, 'onMousedownDirectionBtn');
 		handleEventListener(right, mousedown, 'onMousedownDirectionBtn');
-		handleEventListener(charPackList, 'wheel', 'onWheelCharPackList');
+		handleEventListener(charPackList.querySelector('ul'), 'wheel', 'onWheelCharPackList');
 		handleEventListener(charPackList, click, 'onClickList');
 		handleEventListener(charPackCategories, click, 'onClickList');
 		handleEventListener(charSelectedBtn, click, 'onClickCharSelectedBtn');

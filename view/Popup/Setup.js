@@ -1,9 +1,10 @@
-import { lib, game, ui, get, ai, _status } from "../../../../noname.js";
+import { lib, game, ui, get, ai, _status } from "../../../../../noname.js";
 import globalVars from "../../asset/globalVars.js";
 import Popup from "./index.js";
 import utils from "../../asset/utils.js";
 import config from "../../asset/config.js";
 import Constant from "../../asset/Constant.js";
+import Toast from "../Toast.js";
 
 export default class Setup extends Popup {
 	constructor() {
@@ -163,6 +164,7 @@ export default class Setup extends Popup {
 			<div class="page-list">
 				<div class="main-page">
 					<div data-id="clear"><h3>一键清除禁将记录并恢复默认设置</h3></div>
+					<div data-id="clearCurPHList"><h3>一键当前禁将方式的所有禁将记录</h3></div>
 					<div data-id="ioData"><h3>导出/导入禁将设置</h3></div>
 					<div data-id="remember"><h3>打开界面时加载上次退出的页面</h3><span></span></div>
 					<div data-id="addMenu"><h3>禁将功能添加到游戏顶部菜单栏</h3><span></span></div>
@@ -209,6 +211,7 @@ export default class Setup extends Popup {
 			small: content.querySelector('div[data-id="small"]'),
 			ioData: mainPage.querySelector('div[data-id="ioData"]'),
 			clear: mainPage.querySelector('div[data-id="clear"]'),
+			clearCurPHList: mainPage.querySelector('div[data-id="clearCurPHList"]'),
 			setZoom: mainPage.querySelector('div[data-id="setZoom"]'),
 			setVolume: mainPage.querySelector('div[data-id="setVolume"]'),
 			advancedFP: mainPage.querySelector('div[data-id="advancedFP"]'),
@@ -237,7 +240,7 @@ export default class Setup extends Popup {
 		this.#addListener();
 	}
 	#addListener() {
-		const { remember, addMenu, showClosed, small, ioData, clear, setZoom, setVolume, advancedFP, advancedFPContent } = this.node.pageList.node;
+		const { remember, addMenu, showClosed, small, ioData, clear, clearCurPHList, setZoom, setVolume, advancedFP, advancedFPContent } = this.node.pageList.node;
 		this.autoToggleConfigBtn(remember);
 		this.autoToggleConfigBtn(addMenu);
 		this.autoToggleConfigBtn(small, () => globalVars.selector.renderCharacterList());
@@ -246,6 +249,7 @@ export default class Setup extends Popup {
 		const click = lib.config.touchscreen ? 'touchend' : 'click';
 		ioData.addEventListener(click, this.handleClickIODataConfig.bind(this));
 		clear.addEventListener(click, this.handleClickClearConfig.bind(this));
+		clearCurPHList.addEventListener(click, this.handleClickClearCurPHListConfig.bind(this));
 		setZoom.querySelector('.slider>input[type="range"]').addEventListener('input', this.handleInputSetZoomConfig.bind(this));
 		setZoom.querySelector('.slider>input[type="number"]').addEventListener('input', this.handleInputSetZoomConfig.bind(this));
 		setVolume.querySelector('.slider>input[type="range"]').addEventListener('input', this.handleInputSetVolumeConfig.bind(this));
@@ -264,7 +268,8 @@ export default class Setup extends Popup {
 			config.save().then(callback);
 		});
 	}
-	handleClickIODataConfig() {
+	handleClickIODataConfig(e) {
+		if (e) utils.playAudio('click2');
 		const onBack = () => {
 			this.node.pageList.animate([
 				{ opacity: 1, transform: 'translateX(-100%)' },
@@ -294,6 +299,17 @@ export default class Setup extends Popup {
 				globalVars.prohibitedList = config.prohibitedList.slice();
 				alert('清除成功！');
 				globalVars.selector.reload();
+			});
+		}
+	}
+	handleClickClearCurPHListConfig(e) {
+		if (e) utils.playAudio('click2');
+		if (confirm('确定要清除当前禁将方式的所有禁将记录吗？')) {
+			config.prohibitedList = [];
+			config.save().then(() => {
+				globalVars.prohibitedList = config.prohibitedList.slice();
+				alert('清除成功！');
+				globalVars.selector.renderCharacterList();
 			});
 		}
 	}
@@ -353,6 +369,7 @@ export default class Setup extends Popup {
 				fakeProhibitedBtn.classList.remove('active');
 				fakeProhibitedBtn.classList.remove('advancedFP');
 				fakeProhibitedBtn.textContent = '伪禁';
+				new Toast().info('已退出高级伪禁');
 			} else {
 				config.isFakeProhibitedActive = true;
 				globalVars.fakeProhibitedMode = e.target.closest('[data-id="advancedFPContent"]>div').getAttribute('data-id');
@@ -361,6 +378,7 @@ export default class Setup extends Popup {
 				fakeProhibitedBtn.classList.add('active');
 				fakeProhibitedBtn.classList.add('advancedFP');
 				fakeProhibitedBtn.textContent = config.prohibitedDesc;
+				new Toast().info('已切换至' + config.prohibitedDesc);
 			}
 
 		}

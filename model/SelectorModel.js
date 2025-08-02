@@ -1,4 +1,4 @@
-import { lib, game, ui, get, ai, _status } from "../../../noname.js";
+import { lib, game, ui, get, _status } from "../../../../noname.js";
 import globalVars from "../asset/globalVars.js";
 import config from "../asset/config.js";
 import utils from "../asset/utils.js";
@@ -11,16 +11,16 @@ export default class SelectorModel {
 	closedCharactersId = [];
 	packCategories = {};
 	modeOrder = {
-		'默认': ['all'],
-		'评级': ['all', ...Object.keys(lib.rank.rarity)],
-		'势力': ['all', ...lib.group],
-		'性别': ['all', 'male', 'female', 'double', '']
+		'默认': [],
+		'评级': Object.keys(lib.rank.rarity),
+		'势力': lib.group,
+		'性别': ['male', 'female', 'double', '']
 	}
 	constructor() {
 		globalVars.model = this;
 	}
 	/**
-	 * 获取所有的武将包id数组，数组的首项加上 'all'
+	 * 获取所有的武将包id数组
 	 */
 	/**
 	 * @param {boolean} includesClosed 是否包含已关闭的武将包
@@ -40,10 +40,10 @@ export default class SelectorModel {
 				}
 			}
 		}
-		return includesClosed ? ['all', ...this.openPackList, ...this.closedPackList] : ['all', ...this.openPackList];
+		return includesClosed ? [...this.openPackList, ...this.closedPackList] : [...this.openPackList];
 	}
 	/**
-	 * 获取所有的武将包分类id数组，数组的首项加上 'all'
+	 * 获取所有的武将包分类id数组
 	 */
 	getPackCategoriesId(includesClosed) {
 		const mode = config.currentActiveMode;
@@ -53,24 +53,24 @@ export default class SelectorModel {
 			const result = (() => {
 				switch (mode) {
 					case '默认':
-						return ['all', ...Object.keys(lib.characterSort[pack] || {})];
+						return Object.keys(lib.characterSort[pack] || {});
 					case '评级':
-						if (pack === 'all') return ['all', ...Object.keys(lib.rank.rarity)];
+						if (pack === 'all-pack') return Object.keys(lib.rank.rarity);
 						const keys = Object.keys(lib.characterPack[pack]);
-						return ['all', ...Object.keys(lib.rank.rarity).filter(r => lib.rank.rarity[r].some(k => keys.includes(k)))];
+						return Object.keys(lib.rank.rarity).filter(r => lib.rank.rarity[r].some(k => keys.includes(k)));
 					case '势力': {
-						if (pack === 'all') {
+						if (pack === 'all-pack') {
 							const allPacks = this.getPackListId(true);
 							allPacks.shift();
-							return ['all', ...new Set(allPacks.flatMap(pack => Object.values(lib.characterPack[pack])).map(obj => obj.group || obj[1]))];
+							return [...new Set(allPacks.flatMap(pack => Object.values(lib.characterPack[pack])).map(obj => obj.group || obj[1]))];
 						}
 						const values = Object.values(lib.characterPack[pack]);
-						return ['all', ...new Set(values.map(value => value.group || value[1]))];
+						return [...new Set(values.map(value => value.group || value[1]))];
 					}
 					case '性别': {
-						if (pack === 'all') return ['all', 'male', 'female', 'double', ''];
+						if (pack === 'all-pack') return ['male', 'female', 'double', ''];
 						const values = Object.values(lib.characterPack[pack]);
-						return ['all', ...new Set(values.map(value => value.sex || value[0]))];
+						return [...new Set(values.map(value => value.sex || value[0]))];
 					}
 				}
 			})();
@@ -91,10 +91,10 @@ export default class SelectorModel {
 	}
 	/**
 	 * 获取所有或某一个武将包下的武将id数组
-	 * @param { string } pack 'all' 或 武将包id
+	 * @param { string } pack 'all-pack' 或 武将包id
 	 */
 	getPackCharactersId(pack, includesClosed) {
-		if (pack === 'all') return this.getAllCharactersId(includesClosed);
+		if (pack === 'all-pack') return this.getAllCharactersId(includesClosed);
 		return Object.keys(lib.characterPack[pack]);
 	}
 	/**
@@ -106,8 +106,8 @@ export default class SelectorModel {
 		const packCategories = config.currentActivePackCategoryId;
 		const libCharacter = includesClosed ? Object.assign({}, ...[...this.openPackList, ...this.closedPackList].map(i => lib.characterPack[i])) : lib.character;
 		const characters = (() => {
-			if (pack === 'all') {
-				if (packCategories === 'all') return this.getAllCharactersId(includesClosed);
+			if (pack === 'all-pack') {
+				if (packCategories === 'all-characters') return this.getAllCharactersId(includesClosed);
 				switch (mode) {
 					case '默认':
 						return [];
@@ -118,7 +118,7 @@ export default class SelectorModel {
 					case '性别':
 						return this.getAllCharactersId(includesClosed).filter(id => libCharacter[id].sex === packCategories || libCharacter[id][0] === packCategories);
 				}
-			} else if (packCategories === "all") {
+			} else if (packCategories === 'all-characters') {
 				return Object.keys(lib.characterPack[pack]);
 			}
 

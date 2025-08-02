@@ -139,6 +139,12 @@ class Ployfill {
 				return new Promise((resolve, reject) => {
 					game.checkDir(dir, resolve, reject);
 				});
+			},
+			readFileAsText(filename) {
+				return new Promise((resolve, reject) => {
+					// @ts-expect-error ignore
+					game.readFileAsText(filename, resolve, reject);
+				});
 			}
 		}
 		for (const key in promises) {

@@ -1,4 +1,4 @@
-import { lib, game, ui, get, ai, _status } from "../../../noname.js";
+import { lib, game, ui, get, ai, _status } from "../../../../noname.js";
 
 lib.init.css(lib.assetURL + 'extension/AI禁将/view', "Toast");//调用css样式
 class Toast extends HTMLDivElement {

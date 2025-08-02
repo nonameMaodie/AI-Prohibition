@@ -1,8 +1,8 @@
-import { lib, game, ui, get, ai, _status } from "../../../../noname.js";
+import { lib, game, ui, get, ai, _status } from "../../../../../noname.js";
 import config from "../../asset/config.js";
 import utils from "../../asset/utils.js";
 import globalVars from "../../asset/globalVars.js";
-import Toast from "../../view/Toast.js";
+import Toast from "../Toast.js";
 
 /** @extends HTMLLIElement */
 class SettingCard {
