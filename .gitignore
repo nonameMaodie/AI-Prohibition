@@ -1,1 +1,35 @@
-/.vscode
+.vscode
+
+# 操作系统相关
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# 编辑器相关
+*.swp
+*.swo
+*~
+
+# 构建产物
+dist/
+build/
+*.exe
+*.dll
+*.so
+
+# 日志和临时文件
+*.log
+*.tmp
+temp/
+
+# 依赖目录（如果使用 Node.js）
+node_modules/
+
+# 敏感信息
+.env
+gameData/*
+!gameData/*.txt
+gameDataForMobile/*
+!gameDataForMobile/*.txt
+snapshots/*.json
+config.json
