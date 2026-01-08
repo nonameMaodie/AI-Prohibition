@@ -27,9 +27,5 @@ node_modules/
 
 # 敏感信息
 .env
-gameData/*
-!gameData/*.txt
-gameDataForMobile/*
-!gameDataForMobile/*.txt
-snapshots/*.json
-config.json
+plans/*
+!plans/*.txt
