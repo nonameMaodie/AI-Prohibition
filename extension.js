@@ -16,7 +16,6 @@ game.import("extension", function () {
 	const selectorController = new SelectorController();
 
 	return {
-		editable: false,
 		name: "AI禁将",
 		content: function (cfg, pack) {
 			/* <-------------------------AI禁将-------------------------> */
