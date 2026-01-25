@@ -6,11 +6,13 @@ import globalVars from "./asset/globalVars.js";
 import config from "./asset/config.js";
 import ployfill from "./asset/polyfill.js";
 import history from "./asset/updateHistory.js";
+import { showChangelog } from "./asset/changelog.js";
 import Toast from "./view/Toast.js";
+import { info } from "./info.js";
 
 game.import("extension", function () {
 
-	const latestHistory = history[0];
+	let observed = false;
 	const selectorController = new SelectorController();
 
 	return {
@@ -457,45 +459,48 @@ game.import("extension", function () {
 			ployfill.run();
 		},
 		config: {
-			"updateInfo": {
-				name: `版本：${latestHistory.version}`,
-				init: '1',
+			updateInfo: {
+				name: `版本：${info.version}`,
 				unfrequent: true,
-				intro: "查看此版本更新说明",
-				"item": {
-					"1": "<font color=#2cb625>更新说明",
+				intro: "查看更新内容",
+				init: "1",
+				item: {
+					1: "<font color=#2cb625>更新内容",
 				},
-				"textMenu": function (node, link) {
-					lib.setScroll(node.parentNode);
-					node.parentNode.style.transform = "translateY(-100px)";
-					node.parentNode.style.width = "350px";
-					node.style.cssText = "width: 350px; padding:5px; box-sizing: border-box;";
-					let str = '';
-					const changeLog = latestHistory.changes;
-					for (let i of changeLog) {
-						str += `·${i}<br>`;
-					}
-					if (history.length > 1) {
-						str += "<br><---------分割线---------><br>历史更新内容：<br>"
-						for (let i = 1; i < history.length; i++) {
-							str += `<br><b>${history[i].version}</b> (${history[i].date})<br>`;
-							for (let j of history[i].changes) {
-								str += `·${j}<br>`;
+				visualBar(node, item, create, switcher) {
+					if (observed) return;
+					observed = true;
+					const observer = new MutationObserver((mutations) => {
+						mutations.forEach((mutation) => {
+							if (
+								mutation.type === "attributes" &&
+								mutation.attributeName === "class" &&
+								switcher.classList.contains("on")
+							) {
+								showChangelog(history, info.name, () => {
+									const popupContainer =
+										ui.window.querySelector(".popup-container");
+									if (popupContainer) {
+										popupContainer.hide();
+									}
+									switcher.classList.remove("on");
+								});
 							}
-						}
-					}
-					node.innerHTML = str;
+						});
+					});
+					observer.observe(switcher, {
+						attributes: true,
+						attributeOldValue: true,
+						attributeFilter: ["class"],
+					});
+				},
+				visualMenu(node, link, name, config) {
+					node.parentElement.style.display = "none";
 				},
 			},
 
-			"date": {
-				name: '更新日期：' + latestHistory.date,
-				clear: true,
-				nopointer: true,
-			},
-
-			"compatibility": {
-				name: '运行环境：' + latestHistory.compatibility,
+			"minCompatibility": {
+				name: '最低适配：' + info.minCompatibility,
 				clear: true,
 				nopointer: true,
 			},
@@ -581,12 +586,24 @@ game.import("extension", function () {
 				},
 			},
 
-			"repositor2": {
+			"repository": {
 				clear: true,
-				name: `点击复制gitee仓库地址`,
+				name: `<ins style="color:#fe7300">Gitee仓库地址</ins>`,
 				async onclick() {
 					if (navigator.clipboard && navigator.clipboard.writeText) {
-						await navigator.clipboard.writeText("https://gitee.com/ninemangos/AI-Prohibition");
+						await navigator.clipboard.writeText(info.diskURL);
+						new Toast().success('复制成功！');
+					} else {
+						new Toast().error('复制失败！');
+					}
+				}
+			},
+			"repository2": {
+				clear: true,
+				name: `<ins>Github仓库地址</ins>`,
+				async onclick() {
+					if (navigator.clipboard && navigator.clipboard.writeText) {
+						await navigator.clipboard.writeText(info.forumURL);
 						new Toast().success('复制成功！');
 					} else {
 						new Toast().error('复制失败！');
@@ -613,11 +630,11 @@ game.import("extension", function () {
 				translate: {
 				},
 			},
-			intro: "一个轻量级、多功能的禁将扩展, 感谢《玄武江湖》《全能搜索》等扩展的代码参考。",
-			author: "芒果🥭、157",
-			diskURL: "",
-			forumURL: "",
-			version: latestHistory.version,
+			intro: info.intro,
+			author: info.author,
+			diskURL: info.diskURL,
+			forumURL: info.forumURL,
+			version: info.version,
 		}, files: { "character": [], "card": [], "skill": [], "audio": [] }
 	}
 });

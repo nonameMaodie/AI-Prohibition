@@ -2,7 +2,6 @@ const history = [
 	{
 		"version": "v2.4",
 		"date": "2025-08-02",
-		"compatibility": "本体 v1.10.6 及以上版本",
 		"changes": [
 			"冻结按钮“全扩”和“所有武将”，优化操作体验",
 			"增加设置项“一键当前禁将方式的所有禁将记录”",
@@ -12,7 +11,6 @@ const history = [
 	{
 		"version": "v2.3",
 		"date": "2025-07-04",
-		"compatibility": "本体 v1.10.6 及以上版本",
 		"changes": [
 			"修复了保留的bug。"
 		]
@@ -20,7 +18,6 @@ const history = [
 	{
 		"version": "v2.2",
 		"date": "2025-06-27",
-		"compatibility": "本体 v1.v10.6 及以上版本",
 		"changes": [
 			"进一步优化界面性能，提升操作流畅度",
 			"新增“伪禁”以及更多高级“伪禁”的禁将方式",
@@ -33,7 +30,6 @@ const history = [
 	{
 		"version": "v2.1",
 		"date": "2024-10-10",
-		"compatibility": "本体1.10.6及以上版本",
 		"changes": [
 			"新增方案按钮，支持切换禁将方案",
 			"为界面缩放功能添加滑动条调节",
@@ -43,7 +39,6 @@ const history = [
 	{
 		"version": "v2.0",
 		"date": "2024-09-09",
-		"compatibility": "本体1.10.6及以上版本",
 		"changes": [
 			"重构代码结构，提高可维护性",
 			"新增反选按钮，支持一键反选",

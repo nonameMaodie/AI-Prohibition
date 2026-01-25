@@ -90,7 +90,7 @@ class Config {
 	autoAdjustProperties(deep = false) {
 		const defaultConfig = Config.#defaultConfig;
 		Object.keys(this).forEach(key => {
-			if (!defaultConfig.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(defaultConfig, key)) {
 				delete this[key];
 			}
 		})

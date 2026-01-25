@@ -68,7 +68,7 @@ class GlobalVars {
 	}
 }
 
-window.gl = new GlobalVars();
-export default window.gl;
+// window.gl = new GlobalVars();
+// export default window.gl;
 
-// export default new GlobalVars();
+export default new GlobalVars();
