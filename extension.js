@@ -600,7 +600,7 @@ game.import("extension", function () {
 			},
 			"repository2": {
 				clear: true,
-				name: `<ins>Github仓库地址</ins>`,
+				name: `<ins style="color:#ff79c6">Github仓库地址</ins>`,
 				async onclick() {
 					if (navigator.clipboard && navigator.clipboard.writeText) {
 						await navigator.clipboard.writeText(info.forumURL);
